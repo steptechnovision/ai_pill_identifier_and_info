@@ -1,0 +1,244 @@
+----------------------------------------------------
+--------------------App Name------------------------
+----------------------------------------------------
+
+AI Pill Identifier & Info
+
+----------------------------------------------------
+--------------------Package Name--------------------
+----------------------------------------------------
+
+com.steptechnovision.aipillidentifier
+
+----------------------------------------------------
+--------------------Short Description---------------
+----------------------------------------------------
+
+Identify pills instantly with AI. Get medicine details, uses, side effects & more.
+
+----------------------------------------------------
+--------------------Long Description----------------
+----------------------------------------------------
+
+⭐ AI Pill Identifier & Info – Fast, Accurate & Trusted Medicine Helper
+
+Easily identify pills and find complete medicine information using advanced AI.
+Just enter a pill name or description to get accurate drug info, uses, side effects, warnings, dosage, and more within seconds.
+
+AI Pill Identifier & Info is designed for patients, caregivers, students, pharmacists, and anyone who wants reliable, easy-to-understand medical guidance.
+
+🔍 Accurate Pill Identification with AI
+
+Identify any pill instantly by searching with:
+• Pill or tablet name
+• Color, size or shape
+• Imprint or number on pill
+• Brand or generic names
+
+Our AI engine matches your input with verified medical databases to give fast, precise results.
+
+💊 Complete Drug & Medicine Details
+
+Understand every medicine clearly. The app provides:
+• Uses & benefits
+• Side effects
+• Dosage information
+• Precautions
+• Interactions
+• Contraindications
+• Risks & warnings
+• Pregnancy & breastfeeding safety
+• Overdose information
+• Storage instructions
+
+All information is simplified for users while remaining medically accurate.
+
+📘 AI-Powered Medicine Guide
+
+Get answers for questions like:
+• Who can take this medicine?
+• What is this pill used for?
+• What are the side effects?
+• What should I avoid?
+• Are there safer alternatives?
+• What happens if I miss a dose?
+
+The app gives clear, personalized explanations within seconds.
+
+🧠 Medicine Tracking & Personal History
+
+Keep a log of the medicines you look up:
+• Save past searches
+• Maintain your own quick-access medicine list
+• Useful for long-term treatments
+• Perfect for caregivers and families
+
+Your data remains private and stored securely.
+
+⭐ Why Users Love This App
+
+✔ Fast & accurate pill identification
+✔ Simple and clean interface
+✔ AI-generated explanations
+✔ Reliable and detailed drug info
+✔ Supports generic & branded medicines
+✔ Works on any medicine globally
+✔ Dark mode optimized
+✔ Tokens ensure fast, unlimited lookups
+
+🛡️ Trusted & Safe
+
+This app does NOT replace professional medical advice.
+It is designed to help users understand their medicines, but always consult your doctor for diagnosis and treatment.
+
+We respect user privacy and never share personal health data.
+
+🚀 Download AI Pill Identifier & Info now
+
+Make medicine understanding simple, fast, and accurate with the power of AI.
+
+----------------------------------------------------
+-----------------------Screenshot-------------------
+----------------------------------------------------
+
+⭐ 5. Screenshot Text Set (VERY IMPORTANT for CTR)
+
+Use bold, short, clean screenshot captions.
+
+Screenshot 1 (Most important)
+
+Identify Pills Instantly with AI
+Subtext: “Fast & accurate results in seconds”
+
+Screenshot 2
+
+Complete Medicine Details
+Subtext: “Uses, benefits, dosage & more”
+
+Screenshot 3
+
+Check Side Effects & Warnings
+Subtext: “Stay safe before taking any medicine”
+
+Screenshot 4
+
+Find Drug Interactions
+Subtext: “Avoid dangerous medicine combinations”
+
+Screenshot 5
+
+Track Your Medicines Easily
+Subtext: “Save history & quick-access details”
+
+Screenshot 6
+
+AI-Powered Answers
+Subtext: “Clear, simple explanations for every drug”
+
+Screenshot 7
+
+Privacy Focused & Secure
+
+-------------------------------------------------------------------------------------
+-----------------------App Icon Concept (HIGH CTR + Medical Trust)-------------------
+-------------------------------------------------------------------------------------
+
+Use this formula (tested for medical apps):
+
+🎨 Colors
+
+Dark blue background (#0A1A3A)
+
+White + Mint Green + Turquoise accents
+
+🧩 Icon Elements
+
+Add a big clean pill capsule + an AI glow core inside.
+
+Visual layout:
+[ Rounded square ]
+Dark blue background
+Large pill icon (50% of icon area)
+Small glowing AI nodes
+Mint green neon outline
+
+This gives:
+✔ Medical trust
+✔ AI feel
+✔ Professional look
+✔ High CTR on Play Store
+
+Sample:
+┌─────────────────────────┐
+│      ■■■■■■■■■■■■■       │  ← Dark navy background (#0A1A3A)
+│   ■■■         ■■■■■     │
+│  ■     AI GLOW CORE   ■│  ← Light cyan glow behind pill
+│ ■                       ■│
+│■      ○  ○  ○  ○        ■│  ← AI nodes / neural lights
+│■                         ■│
+│■     ╔══════════╗       ■│
+│■     ║  PILL     ║       ■│  ← Big capsule shape
+│■     ╚══════════╝       ■│    Left half = white, Right half = mint (#3FF0D8)
+│ ■                       ■│
+│  ■■■               ■■■■ │
+│     ■■■■■■■■■■■■■■■■    │
+└─────────────────────────┘
+
+------------------------------------------------------------------------------------------------
+-----------------------Feature Graphic (Important for Play Store Web ranking)-------------------
+------------------------------------------------------------------------------------------------
+
+Text:
+⭐ "Identify Pills Instantly with AI"
+Background:
+Abstract dark medical gradient with pill silhouettes
+Colors:
+Navy blue → Purple → Cyan
+Style:
+Neon edge lines + AI circuit elements
+
+Sample:
+┌──────────────────────────────────────────────────────────┐
+│    [AI BLUE–PURPLE GRADIENT BACKGROUND]                  │
+│                                                          │
+│   ┌──────────┐       ⭐ Identify Pills Instantly with AI  │
+│   │   ICON   │        Get complete medicine information   │
+│   └──────────┘         in seconds.                        │
+│                                                          │
+│     AI circuit lines flowing from icon → pill shapes     │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
+
+
+---------------------------------------------------------
+-----------------------Category + Tags-------------------
+---------------------------------------------------------
+
+Category:
+
+Medical
+
+Tags:
+
+drug_information
+pill_identifier
+AI
+health_information
+medicine_tracker
+
+
+-----------------------------------------------
+-----------------------Plans-------------------
+-----------------------------------------------
+
+
+| Price | Tokens | You Receive | API Cost | **Profit**   |
+| ----- | ------ | ----------- | -------- | ------------ |
+| ₹69   | 5      | ₹58.65      | ₹0.20    | **₹58.45**   |
+| ₹99   | 10     | ₹84.15      | ₹0.40    | **₹83.75**   |
+| ₹199  | 25     | ₹169.15     | ₹1.00    | **₹168.15**  |
+| ₹349  | 45     | ₹296.65     | ₹1.80    | **₹294.85**  |
+| ₹499  | 70     | ₹424.15     | ₹2.80    | **₹421.35**  |
+| ₹699  | 120    | ₹594.15     | ₹4.80    | **₹589.35**  |
+| ₹999  | 250    | ₹849.15     | ₹10.00   | **₹839.15**  |
+| ₹1499 | 500    | ₹1274.15    | ₹20.00   | **₹1254.15** |
