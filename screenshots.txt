@@ -1,0 +1,170 @@
+🎨 ⚡ Screenshot Pack (8 Screens) — Full Design Layout
+⭐ Screenshot 1 — Search Feature (Most Important)
+Caption (Top, Bold): Identify Pills Instantly with AI
+Subtext (Below Caption): Fast & accurate results in seconds
+🎯 What UI to use:
+
+Use the top portion of your Home Screen
+
+Show: Search bar, search icon, dark theme background
+
+Don’t show expanded results yet (keep it clean)
+
+🎨 Background style:
+
+Dark blur gradient (#0D0D0D → #1F1F1F)
+
+Add soft blue neon glow behind phone
+
+📱 Phone mockup:
+
+Modern borderless Android mockup
+
+White or silver phone body for contrast
+
+🔧 Highlight elements:
+
+Add a floating magnifying glass icon
+
+Add subtle arrows showing “Type name → Get result”
+
+⭐ Screenshot 2 — Medicine Details (Pros/Usage/Benefits)
+Caption: Complete Medicine Details
+Subtext: Uses • Benefits • Dosage • Info
+🎯 What UI to use:
+
+Crop the expanded result showing:
+
+Pros
+
+Benefits
+
+Usage
+
+🎨 Background:**
+
+Blue → Purple gradient (medical, premium)
+
+Add a soft glowing capsule/pill illustration in the corner
+
+🔧 Highlights:**
+
+Add rounded rectangles around “Pros” & “Benefits”
+
+Use icons: ✔ for pros, 💊 for usage
+
+⭐ Screenshot 3 — Side Effects & Warnings
+Caption: Check Side Effects & Warnings
+Subtext: Stay safe before taking any medicine
+🎯 UI to use:**
+
+Crop the “Side Effects” + “Warnings” section
+
+Show 3–4 bullet items clearly
+
+🎨 Background:**
+
+Red → orange caution gradient
+
+Add a faint warning triangle icon
+
+🔧 Highlights:**
+
+Highlight one side effect with a yellow glow
+
+Add icons: ⚠️ for warnings
+
+⭐ Screenshot 4 — Interactions
+Caption: Avoid Harmful Drug Interactions
+Subtext: Check compatibility with other medicines
+🎯 UI to use:**
+
+Crop the “Interactions” section
+
+Show 3 items
+
+🎨 Background:**
+
+Purple → blue gradient
+
+Add chemical bonding subtle illustration
+
+🔧 Highlights:**
+
+Draw connecting lines showing “Medicine A ↔ Medicine B”
+
+⭐ Screenshot 5 — Dosage Guidance
+Caption: Easy-to-Understand Dosage Guidance
+Subtext: AI-generated recommendations
+🎯 UI to use:**
+
+Crop “Dosage” section
+
+Show 1–2 lines clearly
+
+🎨 Background:**
+
+Green → blue medical gradient
+
+Add a small pill bottle illustration
+
+🔧 Highlights:**
+
+Use a large ℹ️ Info icon near the caption
+
+⭐ Screenshot 6 — FAQ & Extra Info
+Caption: Clear AI-Powered Explanations
+Subtext: Simple answers for every medicine
+🎯 UI to use:**
+
+Crop the FAQ area
+
+Show 2–3 QA pairs
+
+🎨 Background:**
+
+Electric blue gradient
+
+Add neural network subtle shapes
+
+🔧 Highlights:**
+
+Use a lightbulb icon 💡
+
+⭐ Screenshot 7 — History Screen
+Caption: Track Your Previous Searches
+Subtext: Quick access to all your medicines
+🎯 UI to use:**
+
+Full history screen
+
+Show 5–6 saved medicines
+
+🎨 Background:**
+
+Dark → teal gradient
+
+Add folder or clock icon
+
+🔧 Highlights:**
+
+Use a curved highlight shape around the list
+
+⭐ Screenshot 8 — Privacy & Security
+Caption: Privacy-Focused & Secure
+Subtext: No personal data collected. Ever.
+🎯 UI to use:**
+
+Optional: Blur background with soft icons
+
+Do NOT show app UI (concept graphic allowed)
+
+🎨 Background:**
+
+Full dark gradient
+
+Add shield icon with checkmark
+
+🔧 Highlights:**
+
+Add light rays behind shield

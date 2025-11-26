@@ -64,7 +64,7 @@ class _CollapsibleCardState extends State<CollapsibleCard>
       margin: const EdgeInsets.symmetric(vertical: 6),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       elevation: 3,
-      color: Theme.of(context).colorScheme.surface.withOpacity(0.9),
+      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
         onTap: _toggleExpand,

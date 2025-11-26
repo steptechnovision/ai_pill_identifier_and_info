@@ -1,16 +1,19 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:developer';
 
 import 'package:ai_medicine_tracker/helper/app_assets.dart';
 import 'package:ai_medicine_tracker/helper/app_colors.dart';
+import 'package:ai_medicine_tracker/helper/constant.dart';
 import 'package:ai_medicine_tracker/helper/utils.dart';
 import 'package:ai_medicine_tracker/repository/medicine_repository.dart';
+import 'package:ai_medicine_tracker/screens/add_reminder_screen.dart';
 import 'package:ai_medicine_tracker/screens/medicine_history_screen.dart';
+import 'package:ai_medicine_tracker/screens/reminders_screen.dart';
 import 'package:ai_medicine_tracker/screens/token_purchase_screen.dart';
 import 'package:ai_medicine_tracker/widgets/collapsible_card.dart';
 import 'package:ai_medicine_tracker/widgets/custom_text_field.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MedicineTrackerScreen extends StatefulWidget {
@@ -22,50 +25,163 @@ class MedicineTrackerScreen extends StatefulWidget {
 
 class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
   final MedicineRepository repo = MedicineRepository();
-  Timer? _debounce;
   final TextEditingController _controller = TextEditingController();
   bool _isLoading = false;
-  Map<String, List<String>>? _resultMap;
 
-  /// 🗂 Local in-memory cache (medicineName -> resultMap)
-  final Map<String, Map<String, List<String>>> _cache = {};
+  /// Instead of map, store the actual typed model
+  MedicineItem? _currentMedicine;
 
-  /// Suggestions list
-  List<String> _suggestions = [];
+  /// Recent canonical names
+  List<String> _recentCanonicals = [];
+
+  /// Chips to display (MedicineItem)
+  List<MedicineItem> _chipMedicines = [];
+
+  List<MedicineItem> _filteredChips = [];
 
   @override
   void initState() {
     super.initState();
-    _loadCacheFromPrefs();
+    _initLogic();
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    _debounce?.cancel();
-    super.dispose();
+  Future<void> _initLogic() async {
+    await repo.ensureLoaded();
+
+    await _loadRecentSearches();
+
+    _combineMedicines();
+    _filteredChips = _chipMedicines;
+
+    setState(() {});
   }
 
-  void _onSearchTextChanged(String value) async {
-    if (_debounce?.isActive ?? false) _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 400), () async {
-      final query = value.trim();
+  // -------------------------------------------------------------
+  // RECENT SEARCHES
+  // -------------------------------------------------------------
+  Future<void> _loadRecentSearches() async {
+    final prefs = await SharedPreferences.getInstance();
+    _recentCanonicals = prefs.getStringList("recent_canonicals") ?? [];
+  }
+
+  Future<void> _addToRecentSearches(String canonical) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // Remove duplicates
+    _recentCanonicals.removeWhere((e) => e == canonical);
+
+    // Add on top
+    _recentCanonicals.insert(0, canonical);
+
+    // Keep limit
+    if (_recentCanonicals.length > 50) {
+      _recentCanonicals = _recentCanonicals.sublist(0, 50);
+    }
+
+    await prefs.setStringList("recent_canonicals", _recentCanonicals);
+  }
+
+  void _combineMedicines({bool resetFilter = false}) {
+    final all = repo.getAllCachedItems();
+    all.sort((a, b) => b.lastUsedAt.compareTo(a.lastUsedAt));
+    _chipMedicines = all;
+
+    if (resetFilter) {
+      _filteredChips = _chipMedicines; // Always show all
+    } else {
+      final query = _controller.text.trim().toLowerCase();
       if (query.isEmpty) {
-        setState(() {
-          _suggestions = [];
-          _resultMap = null; // 👈 optional reset
-        });
-        return;
+        _filteredChips = _chipMedicines;
+      } else {
+        _filteredChips = _chipMedicines
+            .where((item) => item.originalName.toLowerCase().contains(query))
+            .toList();
       }
-      final suggestions = await repo.getSuggestions(query);
-      setState(() => _suggestions = suggestions);
+    }
+
+    setState(() {});
+  }
+
+  // -------------------------------------------------------------
+  // SEARCH SUGGESTIONS (case-insensitive)
+  // -------------------------------------------------------------
+  void _onSearchTextChanged(String value) {
+    final query = value.trim().toLowerCase();
+
+    if (query.isEmpty) {
+      setState(() {
+        _filteredChips = _chipMedicines;
+      });
+      return;
+    }
+
+    setState(() {
+      _filteredChips = _chipMedicines
+          .where((item) => item.originalName.toLowerCase().contains(query))
+          .toList();
     });
+  }
+
+  // -------------------------------------------------------------
+  // PERFORM SEARCH (NO duplicate API calls)
+  // -------------------------------------------------------------
+  Future<void> _searchMedicine() async {
+    final name = _controller.text.trim();
+    if (name.isEmpty) return;
+
+    setState(() {
+      _isLoading = true;
+      _currentMedicine = null;
+    });
+
+    try {
+      final medicine = await repo.fetchMedicine(name);
+      _currentMedicine = medicine;
+      // 🔔 Notify user if no token was used
+      if (medicine.fromCache) {
+        Utils.showNoTokenUsed(context);
+      } else {
+        Utils.showTokenUsed(context);
+      }
+
+      await _addToRecentSearches(medicine.canonicalName);
+    } catch (e, st) {
+      log("❌ Error: $e\n$st");
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _deleteChipMedicine(String originalName) async {
+    final canonical = originalName.toLowerCase();
+    final prefs = await SharedPreferences.getInstance();
+
+    _recentCanonicals.removeWhere((e) => e == canonical);
+    await prefs.setStringList("recent_canonicals", _recentCanonicals);
+
+    await repo.deleteMedicine(canonical);
+
+    _combineMedicines();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("AI Medicine Tracker")),
+      appBar: AppBar(
+        title: Text(Constants.appName),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.alarm),
+            tooltip: 'Reminders',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const RemindersScreen()),
+              );
+            },
+          ),
+        ],
+      ),
       body: Column(
         children: [
           GestureDetector(
@@ -78,14 +194,14 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
               );
             },
             child: Container(
-              margin: EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+              margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
               width: double.infinity,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
                 color: AppColors.appPrimaryRedColor,
               ),
-              padding: EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-              child: Text(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+              child: const Text(
                 "Purchase",
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 14, color: Colors.white),
@@ -93,7 +209,39 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
             ),
           ),
           Container(
-            padding: const EdgeInsets.all(12),
+            margin: EdgeInsets.symmetric(horizontal: 12.w),
+            padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 5.h),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0D3A0D),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Colors.greenAccent.withValues(alpha: 0.4),
+              ),
+            ),
+            child: Row(
+              children: const [
+                Icon(Icons.lock_open, color: Colors.greenAccent, size: 18),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    "Search once → Access forever!\nNo token used on previously searched medicines ✔️",
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.greenAccent,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          SizedBox(height: 8.h),
+
+          // SEARCH ROW (UNTOUCHED)
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 12.w),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -107,18 +255,19 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
                         controller: _controller,
                         showDividerOnSuffixIcon: false,
                         onChanged: _onSearchTextChanged,
-                        textFieldHintTextColor:
-                            AppColors.textFieldHintTextColorNew,
                         isSearchView: true,
-                        showCancelButton: true,
+                        showCancelButton: true, // cross icon remains
                       ),
-                      if (_suggestions.isNotEmpty) _buildSuggestions(),
                     ],
                   ),
                 ),
                 const SizedBox(width: 10),
                 InkWell(
-                  onTap: _searchMedicine,
+                  onTap: () {
+                    FocusScope.of(context).unfocus();
+                    _searchMedicine();
+                    _combineMedicines(resetFilter: true);
+                  },
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
                     height: 56,
@@ -130,7 +279,7 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
                         BoxShadow(
                           color: Theme.of(
                             context,
-                          ).colorScheme.primary.withValues(alpha: 0.3),
+                          ).colorScheme.primary.withAlpha(70),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
@@ -145,16 +294,19 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
               ],
             ),
           ),
+          SizedBox(height: 5.h),
+          _buildMedicineChips(),
           if (_isLoading)
             const Padding(
               padding: EdgeInsets.all(20),
               child: CircularProgressIndicator(),
             ),
-          if (_resultMap != null) Expanded(child: _buildResultView()),
+
+          if (_currentMedicine != null) Expanded(child: _buildResultView()),
         ],
       ),
       bottomNavigationBar: Container(
-        margin: EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+        margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -173,15 +325,19 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
                   borderRadius: BorderRadius.circular(8),
                   color: AppColors.appPrimaryRedColor,
                 ),
-                padding: EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-                child: Text(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 12,
+                ),
+                child: const Text(
                   "View History",
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 14, color: Colors.white),
                 ),
               ),
             ),
-            Text(
+            const SizedBox(height: 6),
+            const Text(
               "*This app provides AI-generated info. Consult a doctor before taking any medication.",
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 12, color: Colors.red),
@@ -192,126 +348,136 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
     );
   }
 
-  /// Load cache from SharedPreferences when app starts
-  Future<void> _loadCacheFromPrefs() async {
-    final prefs = await SharedPreferences.getInstance();
-    final cachedJson = prefs.getString("medicine_cache");
-    if (cachedJson != null) {
-      final decoded = jsonDecode(cachedJson) as Map<String, dynamic>;
-      decoded.forEach((key, value) {
-        _cache[key] = (value as Map<String, dynamic>).map(
-          (k, v) => MapEntry(k, List<String>.from(v)),
-        );
-      });
-    }
-    printLog("📂 Cache loaded from SharedPrefs: ${_cache.keys.toList()}");
-  }
-
-  Future<void> _searchMedicine() async {
-    final medicineName = _controller.text.trim();
-    if (medicineName.isEmpty) return;
-
-    setState(() {
-      _isLoading = true;
-      _resultMap = null;
-      _suggestions.clear();
-    });
-
-    try {
-      final result = await repo.fetchMedicine(medicineName);
-      setState(() => _resultMap = result);
-    } catch (e, st) {
-      log("❌ Error: $e\n$st");
-      setState(
-        () => _resultMap = {
-          "Error": ["$e"],
-        },
-      );
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
   Widget _buildResultView() {
-    if (_resultMap == null || _resultMap!.isEmpty) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(20),
-          child: Text(
-            "No information available for this medicine.",
-            style: TextStyle(color: Colors.white70),
+    final item = _currentMedicine!;
+    final entries = item.sections.entries.toList();
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Results for: ${item.originalName}',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(
+                  Icons.add_alert,
+                  size: 20,
+                  color: Colors.greenAccent,
+                ),
+                tooltip: 'Set reminder for this medicine',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          AddReminderScreen(initialMedicineName: item.originalName),
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
         ),
-      );
-    }
+        Expanded(
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: entries.asMap().entries.map((entry) {
+              final index = entry.key;
+              final section = entry.value;
 
-    return ListView(
-      padding: const EdgeInsets.all(12),
-      children: _resultMap!.entries.toList().asMap().entries.map((entry) {
-        final index = entry.key;
-        final section = entry.value;
-
-        return CollapsibleCard(
-          key: ValueKey(section.key),
-          title: section.key,
-          content: section.value,
-          initiallyExpanded: index < 2,
-          medicineName: _controller.text.trim(),
-        );
-      }).toList(),
+              return CollapsibleCard(
+                key: ValueKey(section.key),
+                title: section.key,
+                content: section.value,
+                initiallyExpanded: index < 2,
+                medicineName: item.originalName,
+              );
+            }).toList(),
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildSuggestions() {
-    if (_suggestions.isEmpty) return const SizedBox.shrink();
+  Widget _buildMedicineChips() {
+    if (_filteredChips.isEmpty) return const SizedBox.shrink();
 
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: _suggestions.length,
-      itemBuilder: (context, index) {
-        final suggestion = _suggestions[index];
-        return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          color: Theme.of(context).colorScheme.surface,
-          // dark surface color
-          child: InkWell(
-            borderRadius: BorderRadius.circular(10),
-            onTap: () {
-              _controller.text = suggestion;
-              _suggestions.clear();
-              setState(() {});
-              _searchMedicine();
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.medication,
-                    color: AppColors.appPrimaryRedColor,
-                    // icon accent
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      suggestion,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
+    return SizedBox(
+      width: double.infinity,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: _filteredChips.map((item) {
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                margin: EdgeInsets.only(right: 6.w),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A1A1A),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white12, width: 0.8),
+                ),
+                child: Row(
+                  children: [
+                    InkWell(
+                      onTap: () {
+                        FocusScope.of(context).unfocus();
+                        _controller.text = item.originalName;
+                        _searchMedicine();
+                        _combineMedicines(resetFilter: true);
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: Text(
+                          item.originalName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
+                    const SizedBox(width: 6),
+                    InkWell(
+                      onTap: () => _deleteChipMedicine(item.originalName),
+                      child: Container(
+                        padding: const EdgeInsets.all(3),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.red.withValues(alpha: 0.8),
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          color: Colors.white,
+                          size: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

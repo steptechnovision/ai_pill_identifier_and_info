@@ -225,8 +225,40 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
 
           // Benefit text
           _benefitsCard(),
-
-          const SizedBox(height: 18),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.greenAccent.withValues(alpha: .2)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    "🔥 One-time Search = Lifetime Access",
+                    style: TextStyle(
+                      color: Colors.greenAccent,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    "Search a medicine once using credits — and it remains FREE forever!",
+                    style: TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    "✔ 0 Token for previously searched medicines 🎉",
+                    style: TextStyle(color: Colors.white54, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          ),
 
           // Packages grid (responsive)
           Wrap(
@@ -285,11 +317,11 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
           width: double.infinity,
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.03),
+            color: Colors.white.withValues(alpha: 0.03),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: Colors.white10),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.6), offset: const Offset(0, 6), blurRadius: 12),
+              BoxShadow(color: Colors.black.withValues(alpha: 0.6), offset: const Offset(0, 6), blurRadius: 12),
             ],
           ),
           child: Row(
@@ -299,10 +331,10 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.greenAccent.withOpacity(.12), Colors.greenAccent.withOpacity(.06)],
+                    colors: [Colors.greenAccent.withValues(alpha: .12), Colors.greenAccent.withValues(alpha: .06)],
                   ),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.greenAccent.withOpacity(.2)),
+                  border: Border.all(color: Colors.greenAccent.withValues(alpha: .2)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -353,9 +385,9 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(colors: [Colors.blueAccent.withOpacity(.18), Colors.purpleAccent.withOpacity(.08)]),
-        border: Border.all(color: Colors.blueAccent.withOpacity(.4)),
-        boxShadow: [BoxShadow(color: Colors.blueAccent.withOpacity(.06), blurRadius: 8, spreadRadius: 1)],
+        gradient: LinearGradient(colors: [Colors.blueAccent.withValues(alpha: .18), Colors.purpleAccent.withValues(alpha: .08)]),
+        border: Border.all(color: Colors.blueAccent.withValues(alpha: .4)),
+        boxShadow: [BoxShadow(color: Colors.blueAccent.withValues(alpha: .06), blurRadius: 8, spreadRadius: 1)],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -377,7 +409,7 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.02),
+            color: Colors.white.withValues(alpha: 0.02),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: Colors.white10),
           ),

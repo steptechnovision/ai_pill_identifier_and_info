@@ -14,7 +14,7 @@ com.steptechnovision.aipillidentifier
 --------------------Short Description---------------
 ----------------------------------------------------
 
-Identify pills instantly with AI. Get medicine details, uses, side effects & more.
+Identify pills instantly with AI. Get drug info, uses, side effects & more.
 
 ----------------------------------------------------
 --------------------Long Description----------------
@@ -138,6 +138,32 @@ Subtext: “Clear, simple explanations for every drug”
 Screenshot 7
 
 Privacy Focused & Secure
+
+---
+
+Google Play Asset Requirements:
+
+1️⃣ App Icon
+- 512 × 512 px
+- PNG, no transparency
+
+2️⃣ Feature Graphic
+- 1024 × 500 px
+- JPG or PNG, no transparency
+
+3️⃣ Phone Screenshots (min 2)
+- 1080 × 1920 px (portrait)
+- or 1920 × 1080 px (landscape)
+
+4️⃣ 7-inch Tablet Screenshots
+- 1280 × 800 px
+
+5️⃣ 10-inch Tablet Screenshots
+- 1920 × 1200 px
+
+6️⃣ Optional Promo Graphic
+- 1280 × 720 px
+
 
 -------------------------------------------------------------------------------------
 -----------------------App Icon Concept (HIGH CTR + Medical Trust)-------------------

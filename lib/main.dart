@@ -1,6 +1,8 @@
 import 'dart:io';
 
+import 'package:ai_medicine_tracker/helper/constant.dart';
 import 'package:ai_medicine_tracker/screens/medicine_tracker_screen.dart';
+import 'package:ai_medicine_tracker/services/reminder_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -21,6 +23,9 @@ void main() async {
 
   await Purchases.configure(configuration);
 
+  // 🔔 Initialize reminders
+  await ReminderService.instance.init();
+
   runApp(const MedicineApp());
 }
 
@@ -32,7 +37,7 @@ class MedicineApp extends StatelessWidget {
     return ScreenUtilInit(
       builder: (context, child) {
         return MaterialApp(
-          title: 'AI Medicine Tracker',
+          title: Constants.appName,
           themeMode: ThemeMode.dark,
           darkTheme: ThemeData(
             brightness: Brightness.dark,

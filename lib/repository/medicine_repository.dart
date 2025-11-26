@@ -1,66 +1,156 @@
 import 'dart:convert';
 import 'dart:developer';
 
+import 'package:ai_medicine_tracker/data/default_medicines.dart';
+import 'package:ai_medicine_tracker/helper/constant.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../helper/constant.dart';
+class MedicineItem {
+  final String originalName; // user typed name
+  final String canonicalName; // lowercase
+  final Map<String, List<String>> sections; // formatted data
+  final int lastUsedAt;
+  final bool fromCache;
 
-/// ✅ A Singleton repository that handles:
-/// - Network requests
-/// - Caching results in memory & SharedPreferences
-/// - JSON parsing and formatting
+  MedicineItem({
+    required this.originalName,
+    required this.canonicalName,
+    required this.sections,
+    required this.lastUsedAt,
+    this.fromCache = false,
+  });
+
+  factory MedicineItem.fromJson(Map<String, dynamic> json) {
+    return MedicineItem(
+      originalName: json["originalName"],
+      canonicalName: json["canonicalName"],
+      sections: (json["sections"] as Map<String, dynamic>).map(
+        (key, value) => MapEntry(key, List<String>.from(value)),
+      ),
+      lastUsedAt: json["lastUsedAt"] ?? 0,
+      fromCache: false,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      "originalName": originalName,
+      "canonicalName": canonicalName,
+      "sections": sections,
+      "lastUsedAt": lastUsedAt,
+    };
+  }
+
+  MedicineItem copyWith({
+    String? originalName,
+    Map<String, List<String>>? sections,
+    int? lastUsedAt,
+    bool? fromCache,
+  }) {
+    return MedicineItem(
+      originalName: originalName ?? this.originalName,
+      canonicalName: canonicalName,
+      sections: sections ?? this.sections,
+      lastUsedAt: lastUsedAt ?? this.lastUsedAt,
+      fromCache: fromCache ?? this.fromCache,
+    );
+  }
+}
+
 class MedicineRepository {
-  // ---- Singleton Boilerplate ----
   static final MedicineRepository _instance = MedicineRepository._internal();
 
   factory MedicineRepository() => _instance;
 
   MedicineRepository._internal();
 
-  // ---- Internal State ----
   final Dio _dio = Dio();
-  final Map<String, Map<String, List<String>>> _cache = {};
-  bool _cacheLoaded = false;
 
-  /// Load cache once from SharedPreferences (if not already loaded)
-  Future<void> _ensureCacheLoaded() async {
-    if (_cacheLoaded) return;
+  /// key = canonicalName (lowercase)
+  final Map<String, MedicineItem> _cache = {};
+
+  bool _loaded = false;
+
+  /// ---------- Load Cache ----------
+  Future<void> _ensureLoaded() async {
+    if (_loaded) return;
+
     final prefs = await SharedPreferences.getInstance();
-    final cachedJson = prefs.getString("medicine_cache");
-    if (cachedJson != null) {
-      final decoded = jsonDecode(cachedJson) as Map<String, dynamic>;
+
+    // Load cache
+    final jsonStr = prefs.getString("medicine_cache");
+    if (jsonStr != null) {
+      final decoded = jsonDecode(jsonStr) as Map<String, dynamic>;
+
       decoded.forEach((key, value) {
-        _cache[key] = (value as Map<String, dynamic>).map(
-          (k, v) => MapEntry(k, List<String>.from(v)),
-        );
+        _cache[key] = MedicineItem.fromJson(value);
       });
-      log("📦 MedicineRepository cache loaded with ${_cache.length} entries.");
+
+      log("📦 Loaded ${_cache.length} cached medicines.");
     }
-    _cacheLoaded = true;
+
+    // Inject default medicines only once
+    final injected = prefs.getBool("default_injected") ?? false;
+    if (!injected) {
+      for (final entry in DefaultMedicinesData.defaultMedicines.entries) {
+        final name = entry.key;
+        final canonical = name.toLowerCase();
+
+        final item = MedicineItem(
+          originalName: name,
+          canonicalName: canonical,
+          sections: entry.value,
+          lastUsedAt: 0,
+        );
+
+        _cache[canonical] = item;
+      }
+
+      await prefs.setBool("default_injected", true);
+      await _saveCache();
+      log("✨ Default medicines injected.");
+    }
+
+    _loaded = true;
   }
 
-  /// Public getter for suggestions based on query
+  /// ---------- Suggestions ----------
   Future<List<String>> getSuggestions(String query) async {
-    await _ensureCacheLoaded();
+    await _ensureLoaded();
+
     final q = query.toLowerCase();
-    return _cache.keys.where((name) => name.toLowerCase().contains(q)).toList();
+
+    return _cache.values
+        .where((m) => m.canonicalName.contains(q))
+        .map((m) => m.originalName)
+        .toList();
   }
 
-  /// Fetch medicine data — cached first, then API if needed.
-  Future<Map<String, List<String>>> fetchMedicine(String name) async {
-    await _ensureCacheLoaded();
+  /// ---------- Fetch ----------
+  Future<MedicineItem> fetchMedicine(String name) async {
+    await _ensureLoaded();
 
-    final key = name.toLowerCase();
+    final canonical = name.toLowerCase();
 
-    // ✅ Return cached if available
-    if (_cache.containsKey(key)) {
-      log("📦 Cache hit: $key");
-      return _cache[key]!;
+    // ✔ cache hit (case-insensitive)
+    if (_cache.containsKey(canonical)) {
+      log("📦 Cache hit: $name → ${_cache[canonical]!.originalName}");
+
+      final updated = _cache[canonical]!.copyWith(
+        fromCache: true,
+        lastUsedAt: DateTime.now().millisecondsSinceEpoch,
+      );
+
+      _cache[canonical] = updated;
+      _saveCache(); // 🔥 async, no await
+
+      return updated;
     }
 
-    // 🌐 API request
-    log("📤 Searching medicine: $key");
+    // 🌐 fetch from API
+    log("🌍 API Request for $name");
+
     final response = await _dio.post(
       Constants.openAiApi,
       options: Options(
@@ -72,36 +162,60 @@ class MedicineRepository {
       data: Constants.getOpenAiRequestData(name),
     );
 
-    final rawContent = response.data["choices"][0]["message"]["content"];
-    final parsed = Map<String, dynamic>.from(jsonDecode(rawContent));
+    final raw = response.data["choices"][0]["message"]["content"];
+    final parsed = jsonDecode(raw) as Map<String, dynamic>;
 
-    // ✅ Normalize data: ensure all values are List<String>
-    final formatted = parsed.map((k, v) {
-      if (v is List) return MapEntry(k, v.map((e) => e.toString()).toList());
-      if (v is String) return MapEntry(k, [v]);
-      return MapEntry(k, ["No data available"]);
+    // Normalize map — ensure List<String>
+    final formatted = parsed.map((key, value) {
+      if (value is List) return MapEntry(key, value.map((e) => "$e").toList());
+      if (value is String) return MapEntry(key, [value]);
+      return MapEntry(key, ["No data available"]);
     });
 
-    // 🧠 Save in memory + persist
-    _cache[key] = formatted;
+    final item = MedicineItem(
+      originalName: name,
+      canonicalName: canonical,
+      sections: formatted,
+      lastUsedAt: DateTime.now().millisecondsSinceEpoch,
+    );
+
+    _cache[canonical] = item;
     await _saveCache();
 
-    return formatted;
+    return item;
   }
 
-  /// Persist cache to SharedPreferences
+  /// ---------- Save Cache ----------
   Future<void> _saveCache() async {
     final prefs = await SharedPreferences.getInstance();
-    final encoded = jsonEncode(_cache);
-    await prefs.setString("medicine_cache", encoded);
-    log("💾 Cache saved (${_cache.length} entries).");
+
+    final map = _cache.map((key, value) => MapEntry(key, value.toJson()));
+
+    await prefs.setString("medicine_cache", jsonEncode(map));
+
+    log("💾 Cache saved (${_cache.length} medicines).");
   }
 
-  /// Optional: Clear cache
+  /// ---------- Clear Cache ----------
   Future<void> clearCache() async {
     _cache.clear();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove("medicine_cache");
     log("🧹 Cache cleared.");
+  }
+
+  /// ---------- Delete single ----------
+  Future<void> deleteMedicine(String name) async {
+    final key = name.toLowerCase();
+    _cache.remove(key);
+    await _saveCache();
+  }
+
+  List<MedicineItem> getAllCachedItems() {
+    return _cache.values.toList();
+  }
+
+  Future<void> ensureLoaded() async {
+    await _ensureLoaded();
   }
 }
