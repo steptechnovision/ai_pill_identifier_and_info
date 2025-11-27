@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:ai_medicine_tracker/helper/constant.dart';
+import 'package:ai_medicine_tracker/helper/prefs.dart';
 import 'package:ai_medicine_tracker/screens/medicine_tracker_screen.dart';
 import 'package:ai_medicine_tracker/services/reminder_service.dart';
 import 'package:flutter/material.dart';
@@ -14,7 +15,7 @@ void main() async {
   await Purchases.setLogLevel(LogLevel.debug);
 
   late PurchasesConfiguration configuration;
-
+  await Prefs.initialize();
   if (Platform.isAndroid) {
     configuration = PurchasesConfiguration("goog_utOaJTDNmzZSOBnQOmereRGyWsK");
   } else {

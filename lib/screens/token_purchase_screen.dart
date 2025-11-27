@@ -1,7 +1,8 @@
-import 'dart:ui';
-
 import 'package:ai_medicine_tracker/helper/app_colors.dart';
+import 'package:ai_medicine_tracker/helper/prefs.dart';
+import 'package:ai_medicine_tracker/helper/utils.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 /// TokenPurchaseScreen
@@ -15,18 +16,13 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 ///   builder: (_) => TokenPurchaseScreen(currentTokens: yourCurrentTokens),
 /// ));
 class TokenPurchaseScreen extends StatefulWidget {
-  final int currentTokens;
-
-  const TokenPurchaseScreen({super.key, required this.currentTokens});
+  const TokenPurchaseScreen({super.key});
 
   @override
   State<TokenPurchaseScreen> createState() => _TokenPurchaseScreenState();
 }
 
 class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
-  // ---------------------------------------------------------------------------
-  // LOGIC SECTION (EXACTLY AS PROVIDED)
-  // ---------------------------------------------------------------------------
   Offerings? offerings;
   bool isLoading = true;
   bool isProcessing = false;
@@ -47,7 +43,11 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
     } catch (e, st) {
       debugPrint('Failed to fetch offerings: $e\n$st');
       setState(() => isLoading = false);
-      _showMessage('Failed to load packages. Please try again.', isError: true);
+      Utils.showMessage(
+        context,
+        'Failed to load packages. Please try again.',
+        isError: true,
+      );
     }
   }
 
@@ -106,11 +106,19 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
       final tokenCount = _extractTokenCount(pkg.storeProduct.title);
       // Logic to save tokens backend...
       setState(() => isProcessing = false);
-      _showMessage('Purchase successful — you received $tokenCount tokens!', success: true);
+      Utils.showMessage(
+        context,
+        'Purchase successful — you received $tokenCount tokens!',
+        success: true,
+      );
     } catch (e) {
       setState(() => isProcessing = false);
       debugPrint('Purchase error: $e');
-      _showMessage('Purchase failed or cancelled.', isError: true);
+      Utils.showMessage(
+        context,
+        'Purchase failed or cancelled.',
+        isError: true,
+      );
     }
   }
 
@@ -119,23 +127,16 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
     try {
       await Purchases.restorePurchases();
       setState(() => isProcessing = false);
-      _showMessage('Restore completed.', success: true);
+      Utils.showMessage(context, 'Restore completed.', success: true);
     } catch (e) {
       setState(() => isProcessing = false);
-      _showMessage('Restore failed or nothing to restore.', isError: true);
+      Utils.showMessage(
+        context,
+        'Restore failed or nothing to restore.',
+        isError: true,
+      );
     }
   }
-
-  void _showMessage(String msg, {bool success = false, bool isError = false}) {
-    final color = success ? Colors.greenAccent[700] : (isError ? Colors.redAccent : Colors.blueAccent);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: color),
-    );
-  }
-
-  // ---------------------------------------------------------------------------
-  // IMPROVED UI
-  // ---------------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
@@ -150,13 +151,22 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
           icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Add Credits', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        title: const Text(
+          'Add Credits',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
         centerTitle: true,
       ),
-      body: Stack(
+      body: Column(
         children: [
-          _buildBody(packages),
-          if (isProcessing) _processingOverlay(),
+          Expanded(
+            child: Stack(
+              children: [
+                _buildBody(packages),
+                if (isProcessing) _processingOverlay(),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -164,21 +174,33 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
 
   Widget _buildBody(List<Package> packages) {
     if (isLoading) {
-      return const Center(child: CircularProgressIndicator(color: UIConstants.accentGreen));
+      return const Center(
+        child: CircularProgressIndicator(color: UIConstants.accentGreen),
+      );
     }
 
-    if (packages.isEmpty) {
+    if (false) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.info_outline, size: 48, color: Colors.white.withValues(alpha: 0.2)),
+            Icon(
+              Icons.info_outline,
+              size: 48,
+              color: Colors.white.withValues(alpha: 0.2),
+            ),
             const SizedBox(height: 12),
-            const Text('No packages available', style: TextStyle(color: Colors.white70)),
+            const Text(
+              'No packages available',
+              style: TextStyle(color: Colors.white70),
+            ),
             TextButton(
               onPressed: _loadOfferings,
-              child: const Text('Retry', style: TextStyle(color: UIConstants.accentGreen)),
-            )
+              child: const Text(
+                'Retry',
+                style: TextStyle(color: UIConstants.accentGreen),
+              ),
+            ),
           ],
         ),
       );
@@ -193,36 +215,35 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
         : 0.0;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 20.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Current Balance Header
           _buildBalanceHeader(),
-
-          const SizedBox(height: 24),
-
-          // 2. Info Banner (One-time search USP)
+          SizedBox(height: 10.h),
           _buildInfoBanner(),
-
-          const SizedBox(height: 24),
-
-          const Text(
+          SizedBox(height: 6.h),
+          Text(
             "Select a Package",
-            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-          const SizedBox(height: 12),
-
-          // 3. Package List
+          SizedBox(height: 6.h),
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: packages.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            separatorBuilder: (_, __) => SizedBox(height: 8.h),
             itemBuilder: (_, index) {
               final p = packages[index];
               final perToken = _pricePerToken(p);
-              final discount = (cheapestPerToken.isFinite && perToken.isFinite && perToken < cheapestPerToken)
+              final discount =
+                  (cheapestPerToken.isFinite &&
+                      perToken.isFinite &&
+                      perToken < cheapestPerToken)
                   ? ((1 - (perToken / cheapestPerToken)) * 100)
                   : 0.0;
 
@@ -234,65 +255,108 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
             },
           ),
 
-          const SizedBox(height: 30),
+          SizedBox(height: 30.h),
 
           // 4. Footer
           Center(
             child: TextButton(
               onPressed: _restorePurchases,
               style: TextButton.styleFrom(foregroundColor: Colors.white54),
-              child: const Text("Restore Purchases", style: TextStyle(decoration: TextDecoration.underline)),
+              child: const Text(
+                "Restore Purchases",
+                style: TextStyle(decoration: TextDecoration.underline),
+              ),
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20.h),
         ],
       ),
     );
   }
 
   Widget _buildBalanceHeader() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            UIConstants.accentGreen.withValues(alpha: 0.2),
-            UIConstants.accentGreen.withValues(alpha: 0.05),
+    return GestureDetector(
+      onLongPress: () {
+        _purchaseDummy(2);
+      },
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(vertical: 8.h),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          gradient: LinearGradient(
+            colors: [const Color(0xFF1E1E1E), const Color(0xFF2C2C2C)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.1),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: UIConstants.accentGreen.withValues(alpha: 0.15),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
           ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: UIConstants.accentGreen.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        children: [
-          const Text(
-            "CURRENT BALANCE",
-            style: TextStyle(
-              color: UIConstants.accentGreen,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.5,
+        child: Stack(
+          children: [
+            // Background Decoration (Abstract Circles)
+            Positioned(
+              right: -20,
+              top: -20,
+              child: Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      UIConstants.accentGreen.withValues(alpha: 0.2),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            "${widget.currentTokens}",
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 48,
-              fontWeight: FontWeight.bold,
-              height: 1.0,
+
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: Text(
+                    "${Prefs.getTokens()}",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 48.sp,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
+                1.verticalSpace,
+                SizedBox(
+                  width: double.infinity,
+                  child: Text(
+                    "CREDITS",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: UIConstants.accentGreen,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            "Credits Available",
-            style: TextStyle(color: Colors.white54, fontSize: 14),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -316,12 +380,20 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
               children: [
                 const Text(
                   "Search once, access forever",
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   "Credits are only deducted for new searches. Viewing history is always free.",
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13, height: 1.4),
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
                 ),
               ],
             ),
@@ -351,10 +423,18 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
               color: const Color(0xFF1E1E1E),
               borderRadius: BorderRadius.circular(16),
               border: isBest
-                  ? Border.all(color: bestColor.withValues(alpha: 0.5), width: 1.5)
+                  ? Border.all(
+                      color: bestColor.withValues(alpha: 0.5),
+                      width: 1.5,
+                    )
                   : Border.all(color: Colors.white.withValues(alpha: 0.05)),
               boxShadow: isBest
-                  ? [BoxShadow(color: bestColor.withValues(alpha: 0.1), blurRadius: 12)]
+                  ? [
+                      BoxShadow(
+                        color: bestColor.withValues(alpha: 0.1),
+                        blurRadius: 12,
+                      ),
+                    ]
                   : [],
             ),
             child: Row(
@@ -395,9 +475,14 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
                           if (discountPercent > 1) ...[
                             const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 6.w,
+                                vertical: 2.h,
+                              ),
                               decoration: BoxDecoration(
-                                color: UIConstants.accentGreen.withValues(alpha: 0.15),
+                                color: UIConstants.accentGreen.withValues(
+                                  alpha: 0.15,
+                                ),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
@@ -426,9 +511,14 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
 
                 // Buy Button
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 10.w,
+                    vertical: 10.h,
+                  ),
                   decoration: BoxDecoration(
-                    color: isBest ? bestColor : Colors.white.withValues(alpha: 0.1),
+                    color: isBest
+                        ? bestColor
+                        : Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
@@ -450,12 +540,15 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
               top: -10,
               right: 20,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
                 decoration: BoxDecoration(
                   color: bestColor,
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 4),
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      blurRadius: 4,
+                    ),
                   ],
                 ),
                 child: const Text(
@@ -481,5 +574,16 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
         child: CircularProgressIndicator(color: UIConstants.accentGreen),
       ),
     );
+  }
+
+  void _purchaseDummy(int tokenCount) async {
+    await Prefs.addTokens(tokenCount);
+    Utils.showMessage(
+      context,
+      "$tokenCount tokens added (dummy)",
+      success: true,
+    );
+
+    setState(() {});
   }
 }

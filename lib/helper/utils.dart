@@ -22,7 +22,7 @@ class Utils {
   static void showToast(
     BuildContext context, {
     required String message,
-    Color backgroundColor = Colors.black87,
+    Color? backgroundColor = Colors.black87,
     Duration duration = const Duration(seconds: 2),
   }) {
     // Haptic vibration
@@ -66,5 +66,29 @@ class Utils {
       message: "Token used ✔ AI result unlocked",
       backgroundColor: Colors.blueAccent,
     );
+  }
+
+  /// 🔹 Token deducted
+  static void showErrorMessage(BuildContext context) {
+    showToast(
+      context,
+      message: "No matching medicine found.",
+      backgroundColor: Colors.redAccent,
+    );
+  }
+
+  static void showMessage(
+    BuildContext context,
+    String msg, {
+    bool success = false,
+    bool isError = false,
+  }) {
+    final Color? color = success
+        ? Colors.greenAccent[700]
+        : (isError ? Colors.redAccent : Colors.blueAccent);
+    showToast(context, message: msg, backgroundColor: color);
+    // ScaffoldMessenger.of(
+    //   context,
+    // ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: color));
   }
 }

@@ -4,12 +4,14 @@ import 'dart:developer';
 import 'package:ai_medicine_tracker/helper/app_assets.dart';
 import 'package:ai_medicine_tracker/helper/app_colors.dart';
 import 'package:ai_medicine_tracker/helper/constant.dart';
+import 'package:ai_medicine_tracker/helper/prefs.dart';
 import 'package:ai_medicine_tracker/helper/utils.dart';
 import 'package:ai_medicine_tracker/repository/medicine_repository.dart';
 import 'package:ai_medicine_tracker/screens/add_reminder_screen.dart';
 import 'package:ai_medicine_tracker/screens/medicine_history_screen.dart';
 import 'package:ai_medicine_tracker/screens/reminders_screen.dart';
 import 'package:ai_medicine_tracker/screens/token_purchase_screen.dart';
+import 'package:ai_medicine_tracker/widgets/app_text.dart';
 import 'package:ai_medicine_tracker/widgets/collapsible_card.dart';
 import 'package:ai_medicine_tracker/widgets/custom_text_field.dart';
 import 'package:flutter/material.dart';
@@ -24,9 +26,6 @@ class MedicineTrackerScreen extends StatefulWidget {
 }
 
 class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
-  // ---------------------------------------------------------------------------
-  // LOGIC SECTION (UNTOUCHED)
-  // ---------------------------------------------------------------------------
   final MedicineRepository repo = MedicineRepository();
   final TextEditingController _controller = TextEditingController();
   bool _isLoading = false;
@@ -35,6 +34,8 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
   List<String> _recentCanonicals = [];
   List<MedicineItem> _chipMedicines = [];
   List<MedicineItem> _filteredChips = [];
+  bool _noMedicineFound = false;
+  int _tokens = 0;
 
   @override
   void initState() {
@@ -45,6 +46,7 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
   Future<void> _initLogic() async {
     await repo.ensureLoaded();
     await _loadRecentSearches();
+    _tokens = Prefs.getTokens();
     _combineMedicines();
     _filteredChips = _chipMedicines;
     setState(() {});
@@ -104,6 +106,17 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
     final name = _controller.text.trim();
     if (name.isEmpty) return;
 
+    // ⚠️ Check token only if API will be used
+    final isCacheHit = repo.cacheContains(name.toLowerCase());
+
+    if (!isCacheHit) {
+      // requires 1 token
+      if (Prefs.getTokens() <= 0) {
+        _showNoTokenDialog();
+        return;
+      }
+    }
+
     setState(() {
       _isLoading = true;
       _currentMedicine = null;
@@ -111,18 +124,192 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
 
     try {
       final medicine = await repo.fetchMedicine(name);
+      _noMedicineFound = false;
       _currentMedicine = medicine;
       if (medicine.fromCache) {
         Utils.showNoTokenUsed(context);
       } else {
+        await Prefs.deductToken(); // 🔥 reduce 1
+        _tokens = Prefs.getTokens();
+        setState(() {});
         Utils.showTokenUsed(context);
       }
       await _addToRecentSearches(medicine.canonicalName);
     } catch (e, st) {
       log("❌ Error: $e\n$st");
+      setState(() {
+        _noMedicineFound = true;
+        _currentMedicine = null;
+      });
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+
+  void _showNoTokenDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        // Allows custom container shape
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1E1E),
+            // Match your dark theme surface
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.5),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 1. Glowing Icon
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.stars_rounded,
+                  size: 40,
+                  color: Colors.amber,
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // 2. Title
+              const Text(
+                "Out of Search Credits",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // 3. Persuasive Text
+              Text(
+                "To analyze a new medicine, you need 1 credit.\n\nTop up your balance to unlock instant AI medical insights.",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+              ),
+
+              const SizedBox(height: 28),
+
+              // 4. Action Buttons
+              Row(
+                children: [
+                  // Cancel Button
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        foregroundColor: Colors.white54,
+                      ),
+                      child: const Text("Not now"),
+                    ),
+                  ),
+
+                  const SizedBox(width: 12),
+
+                  // Buy Button (Prominent)
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context); // Close dialog
+                        _openPurchaseScreen();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: UIConstants.accentGreen,
+                        // Use your Green
+                        foregroundColor: Colors.black,
+                        // Dark text on Green
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        "Get Credits",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget buildNoMedicineFound() {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 10.h),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF5252).withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: const Color(0xFFFF5252).withValues(alpha: 0.1),
+                  width: 1,
+                ),
+              ),
+              child: Icon(
+                Icons.search_off_rounded,
+                size: 34,
+                color: const Color(0xFFFF5252).withValues(alpha: 0.8),
+              ),
+            ),
+            SizedBox(height: 10.h),
+            Text(
+              "No matching medicine",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              "We couldn't find any medicine matching your search. Try a different keyword.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.5),
+                fontSize: 14.sp,
+                height: 1.5, // Improves readability
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _deleteChipMedicine(String originalName) async {
@@ -151,6 +338,65 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
         ),
         actions: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+            child: InkWell(
+              onTap: () {
+                _openPurchaseScreen();
+              },
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(10, 4, 8, 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFD700).withOpacity(0.15),
+                  // Soft Gold BG
+                  borderRadius: BorderRadius.circular(50),
+                  border: Border.all(
+                    color: const Color(0xFFFFD700).withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Icon
+                    const Icon(
+                      Icons.stars_rounded,
+                      color: Color(0xFFFFD700), // Gold
+                      size: 18,
+                    ),
+                    const SizedBox(width: 6),
+
+                    // Count
+                    Text(
+                      "$_tokens",
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(width: 6),
+
+                    // Small Plus Icon (Call to Action)
+                    Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.3),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.add,
+                        size: 10,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.alarm, color: Colors.white),
             tooltip: 'Reminders',
@@ -199,7 +445,11 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
                         ),
                       ),
                     // If we have results, they take over the space below
-                    if (_currentMedicine != null) _buildResultView(),
+                    // if (_currentMedicine != null) _buildResultView(),
+                    if (_noMedicineFound)
+                      buildNoMedicineFound()
+                    else if (_currentMedicine != null)
+                      _buildResultView(),
                   ],
                 ),
               ),
@@ -216,15 +466,10 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
   Widget _buildPurchaseButton() {
     return GestureDetector(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const TokenPurchaseScreen(currentTokens: 10),
-          ),
-        );
+        _openPurchaseScreen();
       },
       child: Container(
-        margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+        margin: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
         decoration: BoxDecoration(
           // ✨ Gradient looks premium but takes less space visually
           gradient: LinearGradient(
@@ -245,13 +490,23 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
               children: [
                 const Icon(Icons.stars, color: Colors.amber, size: 20),
                 SizedBox(width: 10.w),
-                const Text(
-                  "Get Premium Tokens",
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AppText(
+                      "Get Search Credits",
+                      fontSize: 14.sp,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      lineHeight: 1.3,
+                    ),
+                    AppText(
+                      "Unlock instant AI analysis",
+                      fontSize: 12.sp,
+                      color: Colors.white.withValues(alpha: 0.5),
+                      lineHeight: 1.3,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -264,7 +519,7 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
 
   Widget _buildInfoBanner() {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w),
+      margin: EdgeInsets.symmetric(horizontal: 10.w),
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
       decoration: BoxDecoration(
         color: const Color(0xFF0D3A0D).withValues(alpha: 0.6),
@@ -295,58 +550,88 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
   }
 
   Widget _buildSearchBar() {
-    // Define a fixed, compact height for both elements
     const double componentHeight = 46.0;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
+      padding: EdgeInsets.symmetric(horizontal: 10.w),
+      child: Column(
         children: [
-          Expanded(
-            child: CustomTextField(
-              hintText: 'Search medicine...',
-              prefixIcon: AppAssets.icSearch,
-              // Or use Icons.search if asset fails
-              controller: _controller,
-              showDividerOnSuffixIcon: false,
-              onChanged: _onSearchTextChanged,
-              isSearchView: true,
-              showCancelButton: true,
-              // Pass a specific height if you want to control it from outside,
-              // otherwise CustomTextField uses default compact height.
-            ),
-          ),
-          const SizedBox(width: 10),
-          // Reduced gap
-          InkWell(
-            onTap: () {
-              FocusScope.of(context).unfocus();
-              _searchMedicine();
-              _combineMedicines(resetFilter: true);
-            },
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              height: componentHeight,
-              width: componentHeight, // Square button
-              decoration: BoxDecoration(
-                // Using a softer color/gradient looks better than solid primary sometimes
-                color: Theme.of(context).colorScheme.primary,
+          Row(
+            children: [
+              Expanded(
+                child: CustomTextField(
+                  hintText: 'Search medicine...',
+                  prefixIcon: AppAssets.icSearch,
+                  controller: _controller,
+                  showDividerOnSuffixIcon: false,
+                  onChanged: _onSearchTextChanged,
+                  isSearchView: true,
+                  showCancelButton: true,
+                ),
+              ),
+              const SizedBox(width: 10),
+
+              // ✨ Search Button
+              InkWell(
+                onTap: () {
+                  FocusScope.of(context).unfocus();
+                  _searchMedicine();
+                  _combineMedicines(resetFilter: true);
+                },
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: 0.3),
-                    blurRadius: 6,
-                    offset: const Offset(0, 3),
+                child: Container(
+                  height: componentHeight,
+                  width: componentHeight,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ],
+                  child: Icon(
+                    Icons.search_rounded,
+                    color: Theme.of(context).colorScheme.onPrimary,
+                    size: 22,
+                  ),
+                ),
               ),
-              child: Icon(
-                Icons.search_rounded,
-                color: Theme.of(context).colorScheme.onPrimary,
-                size: 22, // Smaller icon
-              ),
+            ],
+          ),
+
+          // ✨ Token Display Directly Below Search
+          Padding(
+            padding: EdgeInsets.only(top: 4.h),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text(
+                  "Balance: ",
+                  style: TextStyle(color: Colors.white54, fontSize: 12.sp),
+                ),
+                InkWell(
+                  onTap: () {
+                    _openPurchaseScreen();
+                  },
+                  child: Row(
+                    children: [
+                      Text(
+                        "$_tokens Credits",
+                        style: TextStyle(
+                          color: _tokens > 0
+                              ? UIConstants.accentGreen
+                              : Colors.redAccent,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13.sp,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.add_circle,
+                        size: 14.sp,
+                        color: UIConstants.accentGreen,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -597,5 +882,16 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
         ],
       ),
     );
+  }
+
+  void _openPurchaseScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const TokenPurchaseScreen()),
+    ).then((_) {
+      setState(() {
+        _tokens = Prefs.getTokens(); // refresh token count
+      });
+    });
   }
 }

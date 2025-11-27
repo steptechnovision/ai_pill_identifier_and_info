@@ -165,6 +165,11 @@ class MedicineRepository {
     final raw = response.data["choices"][0]["message"]["content"];
     final parsed = jsonDecode(raw) as Map<String, dynamic>;
 
+    // ---- VALIDATE RESPONSE ----
+    if (_isInvalidResponse(parsed)) {
+      throw Exception("INVALID_MEDICINE");
+    }
+
     // Normalize map — ensure List<String>
     final formatted = parsed.map((key, value) {
       if (value is List) return MapEntry(key, value.map((e) => "$e").toList());
@@ -183,6 +188,15 @@ class MedicineRepository {
     await _saveCache();
 
     return item;
+  }
+
+  bool _isInvalidResponse(Map<String, dynamic> parsed) {
+    // If all lists are empty → nothing meaningful
+    for (var value in parsed.values) {
+      if (value is List && value.isNotEmpty) return false;
+      if (value is String && value.trim().isNotEmpty) return false;
+    }
+    return true;
   }
 
   /// ---------- Save Cache ----------
@@ -217,5 +231,9 @@ class MedicineRepository {
 
   Future<void> ensureLoaded() async {
     await _ensureLoaded();
+  }
+
+  bool cacheContains(String canonical) {
+    return _cache.containsKey(canonical);
   }
 }

@@ -100,7 +100,8 @@ class _CollapsibleCardState extends State<CollapsibleCard>
                           color: _expanded
                               ? UIConstants.accentGreen
                               : Colors.white.withValues(alpha: 0.9),
-                          fontWeight: FontWeight.w600, // ✨ Semi-bold is cleaner than Bold
+                          fontWeight: FontWeight.w600,
+                          // ✨ Semi-bold is cleaner than Bold
                           fontSize: 16.sp,
                         ),
                       ),
@@ -108,9 +109,14 @@ class _CollapsibleCardState extends State<CollapsibleCard>
 
                     // ✨ Compact Search Button
                     IconButton(
-                      icon: const Icon(Icons.search, size: 18, color: Colors.white38),
+                      icon: const Icon(
+                        Icons.search,
+                        size: 18,
+                        color: Colors.white38,
+                      ),
                       tooltip: "Search Web",
-                      visualDensity: VisualDensity.compact, // Removes extra padding
+                      visualDensity: VisualDensity.compact,
+                      // Removes extra padding
                       onPressed: () {
                         final query = Uri.encodeComponent(
                           "${widget.medicineName} ${widget.title}",
@@ -135,7 +141,9 @@ class _CollapsibleCardState extends State<CollapsibleCard>
                       turns: _expanded ? 0.5 : 0,
                       child: Icon(
                         Icons.keyboard_arrow_down_rounded,
-                        color: _expanded ? UIConstants.accentGreen : Colors.white38,
+                        color: _expanded
+                            ? UIConstants.accentGreen
+                            : Colors.white38,
                         size: 22,
                       ),
                     ),
@@ -147,7 +155,8 @@ class _CollapsibleCardState extends State<CollapsibleCard>
                   sizeFactor: _expandAnimation,
                   axisAlignment: -1.0,
                   child: Padding(
-                    padding: EdgeInsets.only(top: 4.h), // ✨ Less gap than before
+                    padding: EdgeInsets.only(top: 4.h),
+                    // ✨ Less gap than before
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -160,12 +169,17 @@ class _CollapsibleCardState extends State<CollapsibleCard>
                               children: [
                                 // ✨ Custom Bullet Dot instead of Text "•"
                                 Padding(
-                                  padding: const EdgeInsets.only(top: 7, right: 10),
+                                  padding: const EdgeInsets.only(
+                                    top: 7,
+                                    right: 10,
+                                  ),
                                   child: Container(
                                     width: 5,
                                     height: 5,
                                     decoration: BoxDecoration(
-                                      color: UIConstants.accentGreen.withValues(alpha: 0.8),
+                                      color: UIConstants.accentGreen.withValues(
+                                        alpha: 0.8,
+                                      ),
                                       shape: BoxShape.circle,
                                     ),
                                   ),
@@ -174,8 +188,10 @@ class _CollapsibleCardState extends State<CollapsibleCard>
                                   child: Text(
                                     point,
                                     style: TextStyle(
-                                      color: Colors.white.withValues(alpha: 0.75),
-                                      fontSize: 14.sp,
+                                      color: Colors.white.withValues(
+                                        alpha: 0.75,
+                                      ),
+                                      fontSize: 15.sp,
                                       height: 1.5, // Good readability
                                       fontWeight: FontWeight.w400,
                                     ),
