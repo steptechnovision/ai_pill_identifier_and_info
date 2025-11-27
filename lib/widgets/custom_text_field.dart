@@ -93,6 +93,7 @@ class CustomTextField extends StatefulWidget {
 class CustomTextFieldState extends State<CustomTextField> {
   final FocusNode _focusNode = FocusNode();
   bool _obscureText = true;
+  bool _hasFocus = false; // ✨ Tracks focus for styling
 
   late stt.SpeechToText _speech;
   bool _isListening = false;
@@ -104,6 +105,13 @@ class CustomTextFieldState extends State<CustomTextField> {
     super.initState();
     _speech = stt.SpeechToText();
     widget.controller?.addListener(_handleTextChange);
+
+    // ✨ Listen to focus changes to animate the border
+    _focusNode.addListener(() {
+      setState(() {
+        _hasFocus = _focusNode.hasFocus;
+      });
+    });
   }
 
   @override
@@ -128,7 +136,7 @@ class CustomTextFieldState extends State<CustomTextField> {
       onStatus: (status) {
         if (status == "done") {
           if (_bottomSheetContext != null) {
-            Navigator.pop(_bottomSheetContext!); // ✅ only closes dialog
+            Navigator.pop(_bottomSheetContext!);
             _bottomSheetContext = null;
           }
         }
@@ -160,7 +168,6 @@ class CustomTextFieldState extends State<CustomTextField> {
           }
         },
       );
-
       _showVoiceDialog(isListening: true);
     }
   }
@@ -169,6 +176,7 @@ class CustomTextFieldState extends State<CustomTextField> {
     showModalBottomSheet(
       context: context,
       isDismissible: false,
+      backgroundColor: Colors.grey[900], // Dark theme friendly
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(15.r)),
       ),
@@ -197,150 +205,153 @@ class CustomTextFieldState extends State<CustomTextField> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    // ✨ Compact Height
+    final double height = 46.h;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
+        // ✨ Using AnimatedContainer for smooth focus transition
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          height: height,
           padding: EdgeInsets.zero,
           decoration: BoxDecoration(
-            color: Colors.transparent, // 🌙 dark background
-            borderRadius: BorderRadius.circular(7),
+            // ✨ Soft Background Fill (Clean look)
+            color: widget.isDisabled
+                ? Colors.white.withValues(alpha: 0.02)
+                : Colors.white.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(12), // Soft corners
             border: Border.all(
-              color: widget.isDisabled ? Colors.white12 : Colors.white24, // 🌙 softer border
+              // ✨ Only show border/glow when focused or error
+              color: widget.showError
+                  ? Colors.redAccent
+                  : (_hasFocus ? Colors.greenAccent.withValues(alpha: 0.5) : Colors.transparent),
               width: 1,
             ),
-            boxShadow: widget.showShadowOnTextField
-                ? [
-              BoxShadow(
-                color: Colors.black45, // 🌙 subtle shadow
-                blurRadius: 4,
-                offset: Offset(0, 2),
-              ),
-            ]
-                : [],
           ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              // PREFIX ICON
               if (widget.prefixIcon != null)
                 Padding(
-                  padding: EdgeInsets.only(left: 12.w),
+                  padding: EdgeInsets.only(left: 12.w, right: 6.w),
                   child: widget.prefixIcon is String
                       ? SvgPicture.asset(
                     widget.prefixIcon!,
-                    width: 23.r,
-                    height: 23.r,
-                    colorFilter: const ColorFilter.mode(
-                      Colors.white, BlendMode.srcIn,
-                    ), // 🌙 tint icon
+                    width: 20.r, // Smaller icon
+                    height: 20.r,
+                    colorFilter: ColorFilter.mode(
+                      _hasFocus ? Colors.white : Colors.white60,
+                      BlendMode.srcIn,
+                    ),
                   )
                       : Icon(
                     widget.prefixIcon,
-                    size: 23.r,
-                    color: Colors.white, // 🌙 icon color
+                    size: 20.r,
+                    color: _hasFocus ? Colors.white : Colors.white60,
                   ),
                 ),
+
+              // TEXT FIELD
               Expanded(
-                child: Container(
-                  margin: EdgeInsets.symmetric(
-                    horizontal: widget.prefixIcon != null ? 6.w : 12.w,
+                child: TextField(
+                  enabled: !widget.isDisabled,
+                  focusNode: _focusNode,
+                  controller: widget.controller,
+                  obscureText: widget.isPassword ? _obscureText : false,
+                  style: TextStyle(
+                    fontSize: widget.fontSize ?? 15.sp, // Slightly smaller text
+                    color: Colors.white,
+                    fontWeight: FontWeight.w400,
                   ),
-                  color: Colors.transparent,
-                  child: TextField(
-                    enabled: !widget.isDisabled,
-                    focusNode: _focusNode,
-                    controller: widget.controller,
-                    obscureText: widget.isPassword ? _obscureText : false,
-                    style: TextStyle(
-                      fontSize: widget.fontSize ?? 17.sp,
-                      color: Colors.white, // 🌙 text color
+                  textInputAction: widget.textInputAction,
+                  keyboardType: widget.textInputType,
+                  maxLength: widget.maxLength,
+                  onChanged: widget.onChanged,
+                  autofocus: false,
+                  maxLines: widget.maxLines,
+                  inputFormatters: widget.inputFormatters,
+                  onSubmitted: widget.onSubmitted,
+                  // ✨ Center text vertically
+                  textAlignVertical: TextAlignVertical.center,
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    filled: false,
+                    isDense: true,
+                    counterText: "",
+                    hintText: widget.hintText,
+                    hintStyle: TextStyle(
+                      fontSize: widget.fontSize ?? 15.sp,
+                      color: widget.textFieldHintTextColor ?? Colors.white30,
                     ),
-                    textInputAction: widget.textInputAction,
-                    keyboardType: widget.textInputType,
-                    maxLength: widget.maxLength,
-                    onChanged: widget.onChanged,
-                    autofocus: false,
-                    maxLines: widget.maxLines,
-                    inputFormatters: widget.inputFormatters,
-                    onSubmitted: widget.onSubmitted,
-                    decoration: InputDecoration(
-                      border: InputBorder.none,           // 🚀 Removes the default underline
-                      enabledBorder: InputBorder.none,    // 🚀 Removes border when enabled
-                      focusedBorder: InputBorder.none,    // 🚀 Removes border when focused
-                      disabledBorder: InputBorder.none,   // 🚀 Removes border when disabled
-                      filled: false,
-                      isDense: true,
-                      counterText: "",
-                      hintText: widget.hintText,
-                      hintStyle: TextStyle(
-                        fontSize: widget.fontSize ?? 17.sp,
-                        color: widget.textFieldHintTextColor ??
-                            Colors.white38, // 🌙 hint text
-                      ),
-                      contentPadding: EdgeInsets.symmetric(
-                        vertical: 12.h,
-                        horizontal: 0,
-                      ),
-                    ),
+                    // ✨ Zero padding is key for alignment in fixed height container
+                    contentPadding: EdgeInsets.zero,
                   ),
                 ),
               ),
-              if (widget.suffixIcon != null || widget.isSearchView)
-                Padding(
-                  padding: EdgeInsets.only(right: 12.w),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      if (widget.isSearchView && _showClearIcon) ...[
-                        GestureDetector(
-                          onTap: () {
-                            widget.controller?.clear();
-                            widget.onChanged?.call("");
-                            setState(() {
-                              _showClearIcon = false;
-                            });
-                          },
-                          child: Icon(
-                            Icons.close,
-                            size: 20.r,
-                            color: Colors.white60,
-                          ),
-                        ),
-                        SizedBox(width: 8.w),
-                      ],
-                      if (widget.showDividerOnSuffixIcon)
-                        Container(
-                          width: 1,
-                          color: Colors.white24,
-                          height: 24.h,
-                          margin: EdgeInsets.only(right: 8.w),
-                        ),
-                      widget.enableVoiceInput
-                          ? GestureDetector(
-                        onTap: _listen,
-                        child: _suffixView(),
-                      )
-                          : SizedBox.shrink(),
+
+              // SUFFIX ICONS
+              Padding(
+                padding: EdgeInsets.only(right: 12.w),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (widget.isSearchView && _showClearIcon) ...[
+                      GestureDetector(
+                        onTap: () {
+                          widget.controller?.clear();
+                          widget.onChanged?.call("");
+                          setState(() {
+                            _showClearIcon = false;
+                          });
+                        },
+                        child: Icon(Icons.cancel, size: 16.r, color: Colors.white38),
+                      ),
+                      SizedBox(width: 8.w),
                     ],
-                  ),
+                    if (widget.showDividerOnSuffixIcon)
+                      Container(
+                        width: 1,
+                        color: Colors.white12,
+                        height: 20.h,
+                        margin: EdgeInsets.only(right: 8.w),
+                      ),
+                    widget.enableVoiceInput
+                        ? GestureDetector(
+                      onTap: _listen,
+                      child: _suffixView(),
+                    )
+                        : const SizedBox.shrink(),
+
+                    // Handle custom suffix if voice input is not active
+                    if (!widget.enableVoiceInput && widget.suffixIcon != null)
+                      _suffixView(),
+                  ],
                 ),
-              SizedBox(width: 2.w),
+              ),
+
               if (widget.isPassword)
                 Padding(
-                  padding: EdgeInsets.only(right: 13.w),
+                  padding: EdgeInsets.only(right: 12.w),
                   child: GestureDetector(
                     onTap: () => setState(() => _obscureText = !_obscureText),
                     child: Icon(
                       _obscureText ? Icons.visibility_off : Icons.visibility,
-                      size: 6.w,
-                      color: Colors.white60,
+                      size: 20.r,
+                      color: Colors.white54,
                     ),
                   ),
                 ),
             ],
           ),
         ),
+
+        // Counter text remains underneath if needed
         if (widget.maxLength != null && widget.controller != null)
           CounterTextWidget(
             controller: widget.controller!,
@@ -352,9 +363,14 @@ class CustomTextFieldState extends State<CustomTextField> {
 
   Widget _suffixView() {
     return widget.suffixIcon is String
-        ? SvgPicture.asset(widget.suffixIcon!, width: 23.w, height: 23.w)
+        ? SvgPicture.asset(
+      widget.suffixIcon!,
+      width: 20.w,
+      height: 20.w,
+      colorFilter: const ColorFilter.mode(Colors.white70, BlendMode.srcIn),
+    )
         : widget.suffixIcon is Icon
         ? widget.suffixIcon
-        : Icon(widget.suffixIcon, size: 23.w);
+        : Icon(widget.suffixIcon, size: 20.w, color: Colors.white70);
   }
 }

@@ -1,5 +1,7 @@
+import 'package:ai_medicine_tracker/helper/app_colors.dart';
 import 'package:ai_medicine_tracker/screens/web_search_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class CollapsibleCard extends StatefulWidget {
   final String title;
@@ -31,11 +33,11 @@ class _CollapsibleCardState extends State<CollapsibleCard>
     _expanded = widget.initiallyExpanded;
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 250),
+      duration: const Duration(milliseconds: 300),
     );
     _expandAnimation = CurvedAnimation(
       parent: _controller,
-      curve: Curves.easeInOut,
+      curve: Curves.fastOutSlowIn, // Smooth "physics-like" feel
     );
 
     if (_expanded) _controller.forward();
@@ -60,105 +62,135 @@ class _CollapsibleCardState extends State<CollapsibleCard>
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      elevation: 3,
-      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: _toggleExpand,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 🔹 Header row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      widget.title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+    // ✨ Using AnimatedContainer for smooth background color transition
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      decoration: BoxDecoration(
+        // ✨ Soft fill instead of hard border
+        color: _expanded
+            ? Colors.white.withValues(alpha: 0.08) // Slightly lighter when open
+            : Colors.white.withValues(alpha: 0.04), // Very subtle when closed
+        borderRadius: BorderRadius.circular(12),
+        // ✨ Only show a faint glow border when expanded
+        border: Border.all(
+          color: _expanded
+              ? UIConstants.accentGreen.withValues(alpha: 0.2)
+              : Colors.transparent,
+          width: 1,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: _toggleExpand,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 🔹 Header row
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        widget.title,
+                        style: TextStyle(
+                          color: _expanded
+                              ? UIConstants.accentGreen
+                              : Colors.white.withValues(alpha: 0.9),
+                          fontWeight: FontWeight.w600, // ✨ Semi-bold is cleaner than Bold
+                          fontSize: 16.sp,
+                        ),
                       ),
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.search, color: Colors.blueAccent),
-                    onPressed: () {
-                      final query = Uri.encodeComponent(
-                        "${widget.medicineName} ${widget.title}",
-                      );
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => WebSearchScreen(
-                            query: query,
-                            medicineName: widget.medicineName,
-                            title: widget.title,
+
+                    // ✨ Compact Search Button
+                    IconButton(
+                      icon: const Icon(Icons.search, size: 18, color: Colors.white38),
+                      tooltip: "Search Web",
+                      visualDensity: VisualDensity.compact, // Removes extra padding
+                      onPressed: () {
+                        final query = Uri.encodeComponent(
+                          "${widget.medicineName} ${widget.title}",
+                        );
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => WebSearchScreen(
+                              query: query,
+                              medicineName: widget.medicineName,
+                              title: widget.title,
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                  AnimatedRotation(
-                    duration: const Duration(milliseconds: 250),
-                    turns: _expanded ? 0.5 : 0,
-                    child: const Icon(
-                      Icons.keyboard_arrow_down,
-                      color: Colors.white70,
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 2),
+
+                    // Arrow Icon
+                    AnimatedRotation(
+                      duration: const Duration(milliseconds: 300),
+                      turns: _expanded ? 0.5 : 0,
+                      child: Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: _expanded ? UIConstants.accentGreen : Colors.white38,
+                        size: 22,
+                      ),
+                    ),
+                  ],
+                ),
+
+                // 🔹 Collapsible body
+                SizeTransition(
+                  sizeFactor: _expandAnimation,
+                  axisAlignment: -1.0,
+                  child: Padding(
+                    padding: EdgeInsets.only(top: 4.h), // ✨ Less gap than before
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ...widget.content.asMap().entries.map((entry) {
+                          final point = entry.value;
+                          return Padding(
+                            padding: EdgeInsets.only(bottom: 6.h),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // ✨ Custom Bullet Dot instead of Text "•"
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 7, right: 10),
+                                  child: Container(
+                                    width: 5,
+                                    height: 5,
+                                    decoration: BoxDecoration(
+                                      color: UIConstants.accentGreen.withValues(alpha: 0.8),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    point,
+                                    style: TextStyle(
+                                      color: Colors.white.withValues(alpha: 0.75),
+                                      fontSize: 14.sp,
+                                      height: 1.5, // Good readability
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ],
                     ),
                   ),
-                ],
-              ),
-
-              // 🔹 Collapsible body
-              SizeTransition(
-                sizeFactor: _expandAnimation,
-                axisAlignment: -1.0,
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Column(
-                    children: widget.content.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final point = entry.value;
-                      final key = "${widget.title}_$index";
-
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              "• ",
-                              style: TextStyle(
-                                fontSize: 14,
-                                height: 1.4,
-                                color: Colors.blueAccent,
-                              ),
-                            ),
-                            Expanded(
-                              child: Text(
-                                point,
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(
-                                      color: Colors.white70,
-                                      height: 1.4,
-                                    ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
