@@ -28,7 +28,8 @@ class MedicineTrackerScreen extends StatefulWidget {
 class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
   final MedicineRepository repo = MedicineRepository();
   final TextEditingController _controller = TextEditingController();
-  bool _isLoading = false;
+
+  final ValueNotifier _isLoading = ValueNotifier<bool>(false);
 
   MedicineItem? _currentMedicine;
   List<String> _recentCanonicals = [];
@@ -112,7 +113,7 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
       );
       return;
     }
-
+    _isLoading.value = true;
     // ⚠️ Check token only if API will be used
     final isCacheHit = repo.cacheContains(name.toLowerCase());
 
@@ -120,6 +121,7 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
       // 🌐 Internet check
       final online = await Utils.checkInternetWithLoading();
       if (!online) {
+        _isLoading.value = false;
         Utils.showMessage(
           context,
           "No internet connection. Please check your network.",
@@ -130,19 +132,20 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
 
       // requires 1 token
       if (Prefs.getTokens() <= 0) {
+        _isLoading.value = false;
         _showNoTokenDialog();
         return;
       }
     }
 
+    _isLoading.value = true;
     setState(() {
-      _isLoading = true;
+      _noMedicineFound = false;
       _currentMedicine = null;
     });
 
     try {
       final medicine = await repo.fetchMedicine(name);
-      _noMedicineFound = false;
       _currentMedicine = medicine;
       if (medicine.fromCache) {
         Utils.showNoTokenUsed(context);
@@ -155,12 +158,16 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
       await _addToRecentSearches(medicine.canonicalName);
     } catch (e, st) {
       log("❌ Error: $e\n$st");
+      await Prefs.deductToken(); // 🔥 reduce 1
+      _tokens = Prefs.getTokens();
       setState(() {
         _noMedicineFound = true;
         _currentMedicine = null;
       });
     } finally {
-      setState(() => _isLoading = false);
+      setState(() {
+        _isLoading.value = false;
+      });
     }
   }
 
@@ -453,15 +460,21 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
                     _buildSearchBar(),
                     const SizedBox(height: 12),
                     _buildMedicineChips(),
-                    if (_isLoading)
-                      const Padding(
-                        padding: EdgeInsets.all(30),
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            color: UIConstants.accentGreen,
-                          ),
-                        ),
-                      ),
+                    ValueListenableBuilder(
+                      valueListenable: _isLoading,
+                      builder: (context, value, child) {
+                        return value
+                            ? const Padding(
+                                padding: EdgeInsets.all(30),
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    color: UIConstants.accentGreen,
+                                  ),
+                                ),
+                              )
+                            : Container();
+                      },
+                    ),
                     // If we have results, they take over the space below
                     // if (_currentMedicine != null) _buildResultView(),
                     if (_noMedicineFound)
