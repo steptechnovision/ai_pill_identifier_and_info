@@ -1,5 +1,7 @@
 import 'package:ai_medicine_tracker/helper/app_colors.dart';
+import 'package:ai_medicine_tracker/widgets/app_text.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../models/medicine_reminder.dart';
 import '../services/reminder_service.dart';
@@ -70,13 +72,11 @@ class _RemindersScreenState extends State<RemindersScreen> {
           icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: AppText(
           'Medicine Reminders',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 18.sp,
         ),
       ),
       floatingActionButton: FloatingActionButton(
@@ -120,22 +120,18 @@ class _RemindersScreenState extends State<RemindersScreen> {
               color: Colors.white.withValues(alpha: 0.2),
             ),
           ),
-          const SizedBox(height: 16),
-          Text(
+          16.verticalSpace,
+          AppText(
             'No reminders yet',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.9),
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
+            color: Colors.white.withValues(alpha: 0.9),
+            fontSize: 16.sp,
+            fontWeight: FontWeight.w600,
           ),
-          const SizedBox(height: 4),
-          Text(
+          4.verticalSpace,
+          AppText(
             'Tap the + button to add one',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.4),
-              fontSize: 14,
-            ),
+            color: Colors.white.withValues(alpha: 0.4),
+            fontSize: 14.sp,
           ),
         ],
       ),
@@ -183,9 +179,9 @@ class _RemindersScreenState extends State<RemindersScreen> {
               Column(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 10.w,
+                      vertical: 6.h,
                     ),
                     decoration: BoxDecoration(
                       color: r.enabled
@@ -193,29 +189,25 @@ class _RemindersScreenState extends State<RemindersScreen> {
                           : Colors.grey.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Text(
+                    child: AppText(
                       r.timeLabel, // e.g. "08:00 AM"
-                      style: TextStyle(
-                        color: r.enabled
-                            ? UIConstants.accentGreen
-                            : Colors.white54,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
+                      color: r.enabled
+                          ? UIConstants.accentGreen
+                          : Colors.white54,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14.sp,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
+                  4.verticalSpace,
+                  AppText(
                     r.repeatDaily ? 'Daily' : 'Once',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: opacity * 0.5),
-                      fontSize: 10,
-                    ),
+                    color: Colors.white.withValues(alpha: opacity * 0.5),
+                    fontSize: 10.sp,
                   ),
                 ],
               ),
 
-              const SizedBox(width: 16),
+              8.horizontalSpace,
 
               // 💊 Medicine Name
               Expanded(
@@ -224,23 +216,19 @@ class _RemindersScreenState extends State<RemindersScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      AppText(
                         r.medicineName,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        color: Colors.white,
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w600,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 2),
-                      Text(
+                      2.verticalSpace,
+                      AppText(
                         r.enabled ? "Active" : "Disabled",
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: r.enabled ? Colors.white70 : Colors.white30,
-                        ),
+                        fontSize: 12.sp,
+                        color: r.enabled ? Colors.white70 : Colors.white30,
                       ),
                     ],
                   ),
@@ -288,29 +276,33 @@ class _RemindersScreenState extends State<RemindersScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF1E1E1E), // Matches your dark theme
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text(
-            "Delete Reminder?",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          backgroundColor: const Color(0xFF1E1E1E),
+          // Matches your dark theme
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-          content: Text(
+          title: AppText(
+            "Delete Reminder?",
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            maxLines: 10,
+          ),
+          content: AppText(
             "Are you sure you want to remove the reminder for '${r.medicineName}'?",
-            style: const TextStyle(color: Colors.white70),
+            maxLines: 10,
+            color: Colors.white70,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false), // Cancel
-              child: const Text(
-                "Cancel",
-                style: TextStyle(color: Colors.white54),
-              ),
+              child: const AppText("Cancel", color: Colors.white54),
             ),
             TextButton(
               onPressed: () => Navigator.pop(context, true), // Confirm
-              child: const Text(
+              child: const AppText(
                 "Delete",
-                style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
+                color: Colors.redAccent,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ],

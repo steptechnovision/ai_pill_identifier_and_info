@@ -185,10 +185,10 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
             color: const Color(0xFF1E1E1E),
             // Match your dark theme surface
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withOpacity(0.1)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.5),
+                color: Colors.black.withValues(alpha: 0.5),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -201,7 +201,7 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.amber.withOpacity(0.1),
+                  color: Colors.amber.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -211,33 +211,31 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
                 ),
               ),
 
-              const SizedBox(height: 20),
+              20.verticalSpace,
 
               // 2. Title
-              const Text(
+              AppText(
                 "Out of Search Credits",
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+                color: Colors.white,
+                fontSize: 20.sp,
+                maxLines: 5,
+                fontWeight: FontWeight.bold,
               ),
 
-              const SizedBox(height: 12),
+              12.verticalSpace,
 
               // 3. Persuasive Text
-              Text(
+              AppText(
                 "To analyze a new medicine, you need 1 credit.\n\nTop up your balance to unlock instant AI medical insights.",
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
-                  fontSize: 14,
-                  height: 1.5,
-                ),
+                color: Colors.white.withValues(alpha: 0.7),
+                fontSize: 14,
+                lineHeight: 1.5,
+                maxLines: 20,
               ),
 
-              const SizedBox(height: 28),
+              28.verticalSpace,
 
               // 4. Action Buttons
               Row(
@@ -250,7 +248,7 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         foregroundColor: Colors.white54,
                       ),
-                      child: const Text("Not now"),
+                      child: const AppText("Not now"),
                     ),
                   ),
 
@@ -274,9 +272,9 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text(
+                      child: const AppText(
                         "Get Credits",
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
@@ -313,24 +311,22 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
               ),
             ),
             SizedBox(height: 10.h),
-            Text(
+            AppText(
               "No matching medicine",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18.sp,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
-              ),
+              color: Colors.white,
+              fontSize: 18.sp,
+              maxLines: 5,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
             ),
             SizedBox(height: 8.h),
-            Text(
+            AppText(
               "We couldn't find any medicine matching your search. Try a different keyword.",
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
-                fontSize: 14.sp,
-                height: 1.5, // Improves readability
-              ),
+              color: Colors.white.withValues(alpha: 0.5),
+              fontSize: 14.sp,
+              maxLines: 20,
+              lineHeight: 1.5, // Improves readability
             ),
           ],
         ),
@@ -359,9 +355,11 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
       appBar: AppBar(
         backgroundColor: UIConstants.darkBackgroundStart,
         elevation: 0,
-        title: Text(
+        title: AppText(
           Constants.appName,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          fontWeight: FontWeight.bold,
+          fontSize: 20.sp,
+          maxLines: 10,
         ),
         actions: [
           if (!isForScreenShots)
@@ -395,13 +393,12 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
                       const SizedBox(width: 6),
 
                       // Count
-                      Text(
+                      AppText(
                         "$_tokens",
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        fontSize: 14.sp,
+                        maxLines: 20,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
                       ),
 
                       const SizedBox(width: 6),
@@ -567,13 +564,12 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
           ),
           SizedBox(width: 10.w),
           Expanded(
-            child: Text(
+            child: AppText(
               "Search once → Access forever! No tokens needed for previously searched items.",
-              style: TextStyle(
-                fontSize: 11.sp,
-                color: Colors.greenAccent,
-                height: 1,
-              ),
+              fontSize: 11.sp,
+              color: Colors.greenAccent,
+              lineHeight: 1,
+              maxLines: 10,
             ),
           ),
         ],
@@ -592,7 +588,7 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
             children: [
               Expanded(
                 child: CustomTextField(
-                  hintText: 'Search medicine...',
+                  hintText: 'e.g. Paracetamol, Aspirin...',
                   prefixIcon: AppAssets.icSearch,
                   controller: _controller,
                   showDividerOnSuffixIcon: false,
@@ -615,12 +611,12 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
                   height: componentHeight,
                   width: componentHeight,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary,
+                    color: UIConstants.accentGreen,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     Icons.search_rounded,
-                    color: Theme.of(context).colorScheme.onPrimary,
+                    color: Colors.black,
                     size: 22,
                   ),
                 ),
@@ -633,25 +629,21 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Text(
-                    "Balance: ",
-                    style: TextStyle(color: Colors.white54, fontSize: 12.sp),
-                  ),
+                  AppText("Balance: ", color: Colors.white54, fontSize: 12.sp),
                   InkWell(
                     onTap: () {
                       _openPurchaseScreen();
                     },
                     child: Row(
                       children: [
-                        Text(
+                        AppText(
                           "$_tokens Credits",
-                          style: TextStyle(
-                            color: _tokens > 0
-                                ? UIConstants.accentGreen
-                                : Colors.redAccent,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13.sp,
-                          ),
+                          color: _tokens > 0
+                              ? UIConstants.accentGreen
+                              : Colors.redAccent,
+                          fontWeight: FontWeight.bold,
+                          maxLines: 20,
+                          fontSize: 13.sp,
                         ),
                         const SizedBox(width: 4),
                         Icon(
@@ -783,17 +775,17 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      AppText(
                         item.originalName,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 17.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        color: Colors.white,
+                        fontSize: 17.sp,
+                        maxLines: 20,
+                        fontWeight: FontWeight.bold,
                       ),
-                      Text(
+                      AppText(
                         "AI Analysis Result",
-                        style: TextStyle(color: Colors.grey, fontSize: 12.sp),
+                        color: Colors.grey,
+                        fontSize: 12.sp,
                       ),
                     ],
                   ),
@@ -890,22 +882,24 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
                     alpha: 0.7,
                   ), // Slightly dimmed icon
                 ),
-                label: Text(
+                label: AppText(
                   "View History",
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 0.5,
-                  ),
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.5,
                 ),
               ),
             ),
           ),
-          Text(
-            "*This app provides AI-generated info. Consult a doctor before taking any medication.",
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 9.sp, color: Colors.grey, height: 1),
-          ),
+          if (!isForScreenShots)
+            AppText(
+              "*This app provides AI-generated info. Consult a doctor before taking any medication.",
+              textAlign: TextAlign.center,
+              fontSize: 9.sp,
+              color: Colors.grey,
+              lineHeight: 1,
+              maxLines: 20,
+            ),
         ],
       ),
     );

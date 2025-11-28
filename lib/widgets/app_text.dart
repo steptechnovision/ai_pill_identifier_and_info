@@ -1,22 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class AppText extends StatelessWidget {
   const AppText(
     this.msg, {
     super.key,
     this.fontSize,
-    this.overflow = TextOverflow.visible,
-    this.textAlign = TextAlign.center,
-    this.fontWeight = FontWeight.w400,
-    this.fontStyle = FontStyle.normal,
-    this.decoration = TextDecoration.none,
-    this.maxLines = 1,
+    this.overflow,
+    this.textAlign,
+    this.fontWeight,
+    this.fontStyle,
+    this.decoration,
+    this.maxLines,
     this.letterSpacing,
     this.lineHeight,
-    this.color = Colors.white,
+    this.color,
     this.showCustomUnderLine = false,
-    this.underLineColor = Colors.white,
+    this.underLineColor,
     this.showHtmlFormat = false,
   }) : textSpan = null;
 
@@ -24,32 +23,32 @@ class AppText extends StatelessWidget {
     super.key,
     required this.textSpan,
     this.fontSize,
-    this.overflow = TextOverflow.visible,
-    this.textAlign = TextAlign.center,
-    this.fontWeight = FontWeight.w400,
-    this.fontStyle = FontStyle.normal,
-    this.decoration = TextDecoration.none,
-    this.maxLines = 1,
+    this.overflow,
+    this.textAlign,
+    this.fontWeight,
+    this.fontStyle,
+    this.decoration,
+    this.maxLines,
     this.letterSpacing,
     this.lineHeight,
-    this.color = Colors.white,
+    this.color,
     this.showCustomUnderLine = false,
-    this.underLineColor = Colors.white,
+    this.underLineColor,
     this.showHtmlFormat = false,
   }) : msg = '';
 
   final String? msg;
   final double? fontSize;
-  final FontWeight fontWeight;
-  final FontStyle fontStyle;
-  final Color color;
-  final TextDecoration decoration;
-  final TextAlign textAlign;
-  final TextOverflow overflow;
+  final FontWeight? fontWeight;
+  final FontStyle? fontStyle;
+  final Color? color;
+  final TextDecoration? decoration;
+  final TextAlign? textAlign;
+  final TextOverflow? overflow;
   final int? maxLines;
   final double? letterSpacing, lineHeight;
   final bool showCustomUnderLine;
-  final Color underLineColor;
+  final Color? underLineColor;
   final bool showHtmlFormat;
   final TextSpan? textSpan;
 
@@ -59,7 +58,10 @@ class AppText extends StatelessWidget {
         ? Container(
             decoration: BoxDecoration(
               border: Border(
-                bottom: BorderSide(color: underLineColor, width: 1.0),
+                bottom: BorderSide(
+                  color: underLineColor ?? Colors.white,
+                  width: 1.0,
+                ),
               ),
             ),
             child: textWidget(),
@@ -80,7 +82,6 @@ class AppText extends StatelessWidget {
       msg ?? '',
       textAlign: textAlign,
       overflow: overflow,
-      softWrap: true,
       maxLines: maxLines,
       style: getTextStyle(),
     );
@@ -92,7 +93,7 @@ class AppText extends StatelessWidget {
       fontWeight: fontWeight,
       fontStyle: fontStyle,
       letterSpacing: letterSpacing,
-      height: lineHeight ?? 1,
+      height: lineHeight,
       color: color,
       decoration: decoration,
     );
@@ -103,25 +104,25 @@ class AppTextSpan extends StatelessWidget {
   const AppTextSpan({
     super.key,
     this.fontSize,
-    this.overflow = TextOverflow.visible,
-    this.textAlign = TextAlign.center,
-    this.fontWeight = FontWeight.w500,
-    this.fontStyle = FontStyle.normal,
-    this.textDecoration = TextDecoration.none,
-    this.maxLines = 1,
+    this.overflow,
+    this.textAlign,
+    this.fontWeight,
+    this.fontStyle,
+    this.textDecoration,
+    this.maxLines,
     required this.childSpans,
-    this.textColor = Colors.white,
+    this.textColor,
     this.lineHeight,
   });
 
   final double? fontSize;
-  final FontWeight fontWeight;
-  final FontStyle fontStyle;
-  final Color textColor;
-  final TextDecoration textDecoration;
-  final TextAlign textAlign;
-  final TextOverflow overflow;
-  final int maxLines;
+  final FontWeight? fontWeight;
+  final FontStyle? fontStyle;
+  final Color? textColor;
+  final TextDecoration? textDecoration;
+  final TextAlign? textAlign;
+  final TextOverflow? overflow;
+  final int? maxLines;
   final List<TextSpan> childSpans;
   final double? lineHeight;
 
@@ -131,7 +132,7 @@ class AppTextSpan extends StatelessWidget {
       text: TextSpan(
         text: '',
         style: TextStyle(
-          fontSize: (fontSize ?? 18).sp,
+          fontSize: fontSize,
           fontWeight: fontWeight,
           fontStyle: fontStyle,
           color: textColor,
@@ -140,8 +141,8 @@ class AppTextSpan extends StatelessWidget {
         ),
         children: childSpans,
       ),
-      textAlign: textAlign,
-      overflow: overflow,
+      textAlign: textAlign ?? TextAlign.start,
+      overflow: overflow ?? TextOverflow.clip,
       softWrap: true,
       maxLines: maxLines,
     );

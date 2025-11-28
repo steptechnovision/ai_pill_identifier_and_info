@@ -61,9 +61,18 @@ class MedicineReminder {
     );
   }
 
+  // ✨ UPDATED: Converts 22:00 -> 10:00 PM
   String get timeLabel {
-    final h = hour.toString().padLeft(2, '0');
+    final period = hour >= 12 ? 'PM' : 'AM';
+
+    // Logic:
+    // 0 becomes 12 (12:00 AM)
+    // 13-23 becomes 1-11
+    int hour12 = hour % 12;
+    if (hour12 == 0) hour12 = 12;
+
     final m = minute.toString().padLeft(2, '0');
-    return '$h:$m';
+
+    return '$hour12:$m $period';
   }
 }

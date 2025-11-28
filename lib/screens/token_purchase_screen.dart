@@ -1,6 +1,7 @@
 import 'package:ai_medicine_tracker/helper/app_colors.dart';
 import 'package:ai_medicine_tracker/helper/prefs.dart';
 import 'package:ai_medicine_tracker/helper/utils.dart';
+import 'package:ai_medicine_tracker/widgets/app_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
@@ -151,9 +152,10 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
           icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: AppText(
           'Add Credits',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          fontWeight: FontWeight.bold,
+          fontSize: 18.sp,
         ),
         centerTitle: true,
       ),
@@ -179,7 +181,7 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
       );
     }
 
-    if (false) {
+    if (packages.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -190,16 +192,10 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
               color: Colors.white.withValues(alpha: 0.2),
             ),
             const SizedBox(height: 12),
-            const Text(
-              'No packages available',
-              style: TextStyle(color: Colors.white70),
-            ),
+            const AppText('No packages available', color: Colors.white70),
             TextButton(
               onPressed: _loadOfferings,
-              child: const Text(
-                'Retry',
-                style: TextStyle(color: UIConstants.accentGreen),
-              ),
+              child: const AppText('Retry', color: UIConstants.accentGreen),
             ),
           ],
         ),
@@ -223,13 +219,11 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
           SizedBox(height: 10.h),
           _buildInfoBanner(),
           SizedBox(height: 6.h),
-          Text(
+          AppText(
             "Select a Package",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16.sp,
-              fontWeight: FontWeight.bold,
-            ),
+            color: Colors.white,
+            fontSize: 16.sp,
+            fontWeight: FontWeight.bold,
           ),
           SizedBox(height: 6.h),
           ListView.separated(
@@ -262,9 +256,9 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
             child: TextButton(
               onPressed: _restorePurchases,
               style: TextButton.styleFrom(foregroundColor: Colors.white54),
-              child: const Text(
+              child: const AppText(
                 "Restore Purchases",
-                style: TextStyle(decoration: TextDecoration.underline),
+                decoration: TextDecoration.underline,
               ),
             ),
           ),
@@ -328,29 +322,27 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
               children: [
                 SizedBox(
                   width: double.infinity,
-                  child: Text(
+                  child: AppText(
                     "${Prefs.getTokens()}",
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 48.sp,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1,
-                    ),
+                    color: Colors.white,
+                    fontSize: 48.sp,
+                    maxLines: 20,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1,
                   ),
                 ),
                 1.verticalSpace,
                 SizedBox(
                   width: double.infinity,
-                  child: Text(
+                  child: AppText(
                     "CREDITS",
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: UIConstants.accentGreen,
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.5,
-                    ),
+                    color: UIConstants.accentGreen,
+                    fontSize: 14.sp,
+                    maxLines: 20,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.5,
                   ),
                 ),
               ],
@@ -378,22 +370,20 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                AppText(
                   "Search once, access forever",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
+                  color: Colors.white,
+                  maxLines: 20,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14.sp,
                 ),
                 const SizedBox(height: 4),
-                Text(
+                AppText(
                   "Credits are only deducted for new searches. Viewing history is always free.",
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6),
-                    fontSize: 13,
-                    height: 1.4,
-                  ),
+                  color: Colors.white.withValues(alpha: 0.6),
+                  fontSize: 13.sp,
+                  maxLines: 20,
+                  lineHeight: 1.4,
                 ),
               ],
             ),
@@ -464,13 +454,12 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
                     children: [
                       Row(
                         children: [
-                          Text(
+                          AppText(
                             "$tokenCount Credits",
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            color: Colors.white,
+                            fontSize: 16.sp,
+                            maxLines: 20,
+                            fontWeight: FontWeight.bold,
                           ),
                           if (discountPercent > 1) ...[
                             const SizedBox(width: 8),
@@ -485,25 +474,23 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
                                 ),
                                 borderRadius: BorderRadius.circular(4),
                               ),
-                              child: Text(
+                              child: AppText(
                                 "SAVE ${discountPercent.toInt()}%",
-                                style: const TextStyle(
-                                  color: UIConstants.accentGreen,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                color: UIConstants.accentGreen,
+                                fontSize: 10.sp,
+                                maxLines: 20,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ],
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text(
+                      AppText(
                         pkg.storeProduct.priceString,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
-                          fontSize: 14,
-                        ),
+                        color: Colors.white.withValues(alpha: 0.6),
+                        maxLines: 20,
+                        fontSize: 14,
                       ),
                     ],
                   ),
@@ -521,13 +508,12 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
                         : Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Text(
+                  child: AppText(
                     "Buy",
-                    style: TextStyle(
-                      color: isBest ? Colors.black : Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
+                    color: isBest ? Colors.black : Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14.sp,
+                    maxLines: 5,
                   ),
                 ),
               ],
@@ -551,14 +537,12 @@ class _TokenPurchaseScreenState extends State<TokenPurchaseScreen> {
                     ),
                   ],
                 ),
-                child: const Text(
+                child: const AppText(
                   "BEST VALUE",
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
+                  color: Colors.black,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
                 ),
               ),
             ),

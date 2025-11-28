@@ -41,6 +41,7 @@ class MedicineApp extends StatelessWidget {
     return ScreenUtilInit(
       builder: (context, child) {
         return MaterialApp(
+          debugShowCheckedModeBanner: false,
           title: Constants.appName,
           themeMode: ThemeMode.dark,
           darkTheme: ThemeData(

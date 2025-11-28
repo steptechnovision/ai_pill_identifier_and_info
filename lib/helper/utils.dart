@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 import 'dart:io';
 
+import 'package:ai_medicine_tracker/widgets/app_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -32,13 +33,12 @@ class Utils {
     HapticFeedback.mediumImpact();
 
     final snackBar = SnackBar(
-      content: Text(
+      content: AppText(
         message,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: Colors.white,
-        ),
+        fontSize: 14.sp,
+        maxLines: 30,
+        fontWeight: FontWeight.w600,
+        color: Colors.white,
       ),
       backgroundColor: backgroundColor,
       duration: duration,
@@ -90,9 +90,6 @@ class Utils {
         ? Colors.greenAccent[700]
         : (isError ? Colors.redAccent : Colors.blueAccent);
     showToast(context, message: msg, backgroundColor: color);
-    // ScaffoldMessenger.of(
-    //   context,
-    // ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: color));
   }
 
   // ---------------------------------------------------------------------------
@@ -123,14 +120,13 @@ class Utils {
               strokeWidth: 3,
             ),
             20.verticalSpace,
-            Text(
+            AppText(
               message,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.9),
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w500,
-                decoration: TextDecoration.none,
-              ),
+              color: Colors.white.withValues(alpha: 0.9),
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w500,
+              decoration: TextDecoration.none,
+              maxLines: 30,
             ),
           ],
         ),

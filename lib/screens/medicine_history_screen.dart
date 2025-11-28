@@ -2,6 +2,7 @@ import 'package:ai_medicine_tracker/helper/app_assets.dart';
 import 'package:ai_medicine_tracker/helper/app_colors.dart';
 import 'package:ai_medicine_tracker/helper/utils.dart';
 import 'package:ai_medicine_tracker/repository/medicine_repository.dart';
+import 'package:ai_medicine_tracker/widgets/app_text.dart';
 import 'package:ai_medicine_tracker/widgets/collapsible_card.dart';
 import 'package:ai_medicine_tracker/widgets/custom_text_field.dart';
 import 'package:flutter/material.dart';
@@ -91,30 +92,27 @@ class _MedicineHistoryScreenState extends State<MedicineHistoryScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: const Text(
+          title: AppText(
             "Remove from History?",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
           ),
-          content: Text(
+          content: AppText(
             "Are you sure you want to delete '${item.originalName}'? This action cannot be undone.",
-            style: const TextStyle(color: Colors.white70),
+            color: Colors.white70,
+            maxLines: 20,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false), // Cancel
-              child: const Text(
-                "Cancel",
-                style: TextStyle(color: Colors.white54),
-              ),
+              child: AppText("Cancel", color: Colors.white54),
             ),
             TextButton(
               onPressed: () => Navigator.pop(context, true), // Confirm
-              child: const Text(
+              child: const AppText(
                 "Delete",
-                style: TextStyle(
-                  color: Colors.redAccent,
-                  fontWeight: FontWeight.bold,
-                ),
+                color: Colors.redAccent,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ],
@@ -151,13 +149,12 @@ class _MedicineHistoryScreenState extends State<MedicineHistoryScreen> {
               }
             },
           ),
-          title: Text(
+          title: AppText(
             _selectedItem == null ? "History" : "Details",
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            color: Colors.white,
+            fontSize: 18.sp,
+            maxLines: 10,
+            fontWeight: FontWeight.bold,
           ),
         ),
         body: _isLoading
@@ -186,10 +183,7 @@ class _MedicineHistoryScreenState extends State<MedicineHistoryScreen> {
               color: Colors.white.withValues(alpha: 0.2),
             ),
             const SizedBox(height: 16),
-            const Text(
-              "No history found.",
-              style: TextStyle(color: Colors.white38),
-            ),
+            const AppText("No history found.", color: Colors.white38),
           ],
         ),
       );
@@ -229,14 +223,13 @@ class _MedicineHistoryScreenState extends State<MedicineHistoryScreen> {
                   if (showHeader)
                     Padding(
                       padding: EdgeInsets.fromLTRB(10.w, 12.h, 8.w, 4.h),
-                      child: Text(
+                      child: AppText(
                         title.toUpperCase(),
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.4),
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.0,
-                        ),
+                        color: Colors.white.withValues(alpha: 0.4),
+                        fontSize: 11.sp,
+                        maxLines: 20,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
                       ),
                     ),
 
@@ -305,14 +298,14 @@ class _MedicineHistoryScreenState extends State<MedicineHistoryScreen> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: AppColors.appPrimaryRedColor.withValues(
+                      color: UIConstants.accentGreen.withValues(
                         alpha: 0.15,
                       ),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
                       Icons.medication_rounded,
-                      color: AppColors.appPrimaryRedColor,
+                      color: UIConstants.accentGreen,
                       size: 20,
                     ),
                   ),
@@ -323,21 +316,18 @@ class _MedicineHistoryScreenState extends State<MedicineHistoryScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        AppText(
                           item.originalName,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15.sp,
-                            color: Colors.white,
-                          ),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15.sp,
+                          maxLines: 20,
+                          color: Colors.white,
                         ),
-                        const SizedBox(height: 1),
-                        Text(
+                        SizedBox(height: 1.h),
+                        AppText(
                           "Tap to view details",
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            color: Colors.white.withValues(alpha: 0.3),
-                          ),
+                          fontSize: 12.sp,
+                          color: Colors.white.withValues(alpha: 0.3),
                         ),
                       ],
                     ),
@@ -399,13 +389,12 @@ class _MedicineHistoryScreenState extends State<MedicineHistoryScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      AppText(
                         item.originalName,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        color: Colors.white,
+                        fontSize: 20.sp,
+                        maxLines: 20,
+                        fontWeight: FontWeight.bold,
                       ),
                       SizedBox(height: 6.h),
                       Container(
@@ -417,13 +406,12 @@ class _MedicineHistoryScreenState extends State<MedicineHistoryScreen> {
                           color: Colors.white.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: Text(
+                        child: AppText(
                           "Saved in History",
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 11.sp,
-                            fontWeight: FontWeight.w500,
-                          ),
+                          color: Colors.white70,
+                          fontSize: 11.sp,
+                          maxLines: 20,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],

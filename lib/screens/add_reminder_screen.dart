@@ -1,6 +1,8 @@
 import 'package:ai_medicine_tracker/helper/app_colors.dart';
+import 'package:ai_medicine_tracker/widgets/app_text.dart';
 import 'package:ai_medicine_tracker/widgets/custom_text_field.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../services/reminder_service.dart';
 
@@ -62,9 +64,10 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: Colors.redAccent,
-          content: const Text(
+          content: const AppText(
             'Please enter medicine name and select time',
-            style: TextStyle(color: Colors.white),
+            color: Colors.white,
+            maxLines: 5,
           ),
         ),
       );
@@ -92,7 +95,8 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(), // Close keyboard on tap outside
+      onTap: () => FocusScope.of(context).unfocus(),
+      // Close keyboard on tap outside
       child: Scaffold(
         backgroundColor: UIConstants.darkBackgroundStart,
         appBar: AppBar(
@@ -102,13 +106,11 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             icon: const Icon(Icons.close_rounded, color: Colors.white),
             onPressed: () => Navigator.pop(context),
           ),
-          title: const Text(
+          title: AppText(
             'Add Reminder',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18.sp,
           ),
         ),
         body: AbsorbPointer(
@@ -122,13 +124,11 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // 1. MEDICINE NAME INPUT
-                      const Text(
+                      AppText(
                         "Medicine Name",
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        color: Colors.white70,
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w500,
                       ),
                       const SizedBox(height: 8),
                       CustomTextField(
@@ -141,13 +141,11 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                       const SizedBox(height: 24),
 
                       // 2. TIME PICKER CARD
-                      const Text(
+                      AppText(
                         "Notification Time",
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        color: Colors.white70,
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w500,
                       ),
                       const SizedBox(height: 8),
                       _buildTimePickerCard(),
@@ -197,25 +195,23 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
               size: 28,
             ),
             const SizedBox(width: 16),
-            Text(
+            AppText(
               "${hour == 0 ? 12 : hour}:$minute",
-              style: const TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                letterSpacing: 2,
-              ),
+              fontSize: 32.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              maxLines: 5,
+              letterSpacing: 2,
             ),
             const SizedBox(width: 8),
             Padding(
               padding: const EdgeInsets.only(top: 8),
-              child: Text(
+              child: AppText(
                 period,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: UIConstants.accentGreen,
-                ),
+                fontSize: 16.sp,
+                maxLines: 30,
+                fontWeight: FontWeight.w600,
+                color: UIConstants.accentGreen,
               ),
             ),
           ],
@@ -242,16 +238,19 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   color: Colors.white.withValues(alpha: 0.05),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.repeat_rounded, color: Colors.white70, size: 20),
+                child: const Icon(
+                  Icons.repeat_rounded,
+                  color: Colors.white70,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
-              const Text(
+              AppText(
                 "Repeat Daily",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
+                color: Colors.white,
+                fontSize: 15.sp,
+                maxLines: 2,
+                fontWeight: FontWeight.w500,
               ),
             ],
           ),
@@ -270,10 +269,17 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
   Widget _buildSaveButton() {
     return Container(
-      padding: EdgeInsets.fromLTRB(20, 10, 20, MediaQuery.of(context).padding.bottom + 20),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        10,
+        20,
+        MediaQuery.of(context).padding.bottom + 20,
+      ),
       decoration: BoxDecoration(
         color: UIConstants.darkBackgroundStart,
-        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
+        border: Border(
+          top: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+        ),
       ),
       child: SizedBox(
         width: double.infinity,
@@ -284,25 +290,28 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             backgroundColor: UIConstants.accentGreen,
             foregroundColor: Colors.black,
             elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            disabledBackgroundColor: UIConstants.accentGreen.withValues(alpha: 0.3),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            disabledBackgroundColor: UIConstants.accentGreen.withValues(
+              alpha: 0.3,
+            ),
           ),
           child: _saving
               ? const SizedBox(
-            height: 24,
-            width: 24,
-            child: CircularProgressIndicator(
-              strokeWidth: 2.5,
-              color: Colors.white,
-            ),
-          )
-              : const Text(
-            'Save Reminder',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: Colors.white,
+                  ),
+                )
+              : AppText(
+                  'Save Reminder',
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                  maxLines: 5,
+                ),
         ),
       ),
     );

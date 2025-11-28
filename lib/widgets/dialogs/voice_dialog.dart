@@ -129,7 +129,7 @@ class _PulseMicButtonState extends State<PulseMicButton>
         onTap: widget.onTap,
         child: CircleAvatar(
           radius: 38.r,
-          backgroundColor: AppColors.appPrimaryRedColor,
+          backgroundColor: UIConstants.accentGreen,
           child: Icon(Icons.mic, color: Colors.white, size: 36.r),
         ),
       ),

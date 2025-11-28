@@ -1,5 +1,6 @@
 import 'package:ai_medicine_tracker/helper/app_colors.dart';
 import 'package:ai_medicine_tracker/screens/web_search_screen.dart';
+import 'package:ai_medicine_tracker/widgets/app_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -94,16 +95,15 @@ class _CollapsibleCardState extends State<CollapsibleCard>
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(
-                      child: Text(
+                      child: AppText(
                         widget.title,
-                        style: TextStyle(
-                          color: _expanded
-                              ? UIConstants.accentGreen
-                              : Colors.white.withValues(alpha: 0.9),
-                          fontWeight: FontWeight.w600,
-                          // ✨ Semi-bold is cleaner than Bold
-                          fontSize: 16.sp,
-                        ),
+                        color: _expanded
+                            ? UIConstants.accentGreen
+                            : Colors.white.withValues(alpha: 0.9),
+                        fontWeight: FontWeight.w600,
+                        maxLines: 30,
+                        // ✨ Semi-bold is cleaner than Bold
+                        fontSize: 16.sp,
                       ),
                     ),
 
@@ -185,16 +185,13 @@ class _CollapsibleCardState extends State<CollapsibleCard>
                                   ),
                                 ),
                                 Expanded(
-                                  child: Text(
+                                  child: AppText(
                                     point,
-                                    style: TextStyle(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.75,
-                                      ),
-                                      fontSize: 15.sp,
-                                      height: 1.5, // Good readability
-                                      fontWeight: FontWeight.w400,
-                                    ),
+                                    color: Colors.white.withValues(alpha: 0.75),
+                                    fontSize: 15.sp,
+                                    maxLines: 10000,
+                                    lineHeight: 1.5,
+                                    fontWeight: FontWeight.w400,
                                   ),
                                 ),
                               ],
