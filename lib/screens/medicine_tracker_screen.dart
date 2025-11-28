@@ -6,6 +6,7 @@ import 'package:ai_medicine_tracker/helper/app_colors.dart';
 import 'package:ai_medicine_tracker/helper/constant.dart';
 import 'package:ai_medicine_tracker/helper/prefs.dart';
 import 'package:ai_medicine_tracker/helper/utils.dart';
+import 'package:ai_medicine_tracker/main.dart';
 import 'package:ai_medicine_tracker/repository/medicine_repository.dart';
 import 'package:ai_medicine_tracker/screens/add_reminder_screen.dart';
 import 'package:ai_medicine_tracker/screens/medicine_history_screen.dart';
@@ -363,65 +364,66 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
         ),
         actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-            child: InkWell(
-              onTap: () {
-                _openPurchaseScreen();
-              },
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(10, 4, 8, 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFD700).withOpacity(0.15),
-                  // Soft Gold BG
-                  borderRadius: BorderRadius.circular(50),
-                  border: Border.all(
-                    color: const Color(0xFFFFD700).withOpacity(0.3),
-                    width: 1,
+          if (!isForScreenShots)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+              child: InkWell(
+                onTap: () {
+                  _openPurchaseScreen();
+                },
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(10, 4, 8, 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFD700).withOpacity(0.15),
+                    // Soft Gold BG
+                    borderRadius: BorderRadius.circular(50),
+                    border: Border.all(
+                      color: const Color(0xFFFFD700).withOpacity(0.3),
+                      width: 1,
+                    ),
                   ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Icon
-                    const Icon(
-                      Icons.stars_rounded,
-                      color: Color(0xFFFFD700), // Gold
-                      size: 18,
-                    ),
-                    const SizedBox(width: 6),
-
-                    // Count
-                    Text(
-                      "$_tokens",
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Icon
+                      const Icon(
+                        Icons.stars_rounded,
+                        color: Color(0xFFFFD700), // Gold
+                        size: 18,
                       ),
-                    ),
+                      const SizedBox(width: 6),
 
-                    const SizedBox(width: 6),
+                      // Count
+                      Text(
+                        "$_tokens",
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
 
-                    // Small Plus Icon (Call to Action)
-                    Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.3),
-                        shape: BoxShape.circle,
+                      const SizedBox(width: 6),
+
+                      // Small Plus Icon (Call to Action)
+                      Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.3),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.add,
+                          size: 10,
+                          color: Colors.white,
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.add,
-                        size: 10,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
           IconButton(
             icon: const Icon(Icons.alarm, color: Colors.white),
             tooltip: 'Reminders',
@@ -453,12 +455,11 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
                 physics: const BouncingScrollPhysics(),
                 child: Column(
                   children: [
-                    _buildPurchaseButton(),
-                    _buildInfoBanner(),
-                    SizedBox(height: 16),
-                    // Using standard double instead of .h for safety in snippet
+                    if (!isForScreenShots) _buildPurchaseButton(),
+                    if (!isForScreenShots) _buildInfoBanner(),
+                    6.verticalSpace,
                     _buildSearchBar(),
-                    const SizedBox(height: 12),
+                    6.verticalSpace,
                     _buildMedicineChips(),
                     ValueListenableBuilder(
                       valueListenable: _isLoading,
@@ -500,7 +501,7 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
         _openPurchaseScreen();
       },
       child: Container(
-        margin: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+        margin: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
         decoration: BoxDecoration(
           // ✨ Gradient looks premium but takes less space visually
           gradient: LinearGradient(
@@ -513,7 +514,7 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
           ),
           borderRadius: BorderRadius.circular(12),
         ),
-        padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 16.w),
+        padding: EdgeInsets.symmetric(vertical: 6.h, horizontal: 12.w),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -551,7 +552,7 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
   Widget _buildInfoBanner() {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 10.w),
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
       decoration: BoxDecoration(
         color: const Color(0xFF0D3A0D).withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(8),
@@ -626,43 +627,44 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
               ),
             ],
           ),
-          Padding(
-            padding: EdgeInsets.only(top: 4.h),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Text(
-                  "Balance: ",
-                  style: TextStyle(color: Colors.white54, fontSize: 12.sp),
-                ),
-                InkWell(
-                  onTap: () {
-                    _openPurchaseScreen();
-                  },
-                  child: Row(
-                    children: [
-                      Text(
-                        "$_tokens Credits",
-                        style: TextStyle(
-                          color: _tokens > 0
-                              ? UIConstants.accentGreen
-                              : Colors.redAccent,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13.sp,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        Icons.add_circle,
-                        size: 14.sp,
-                        color: UIConstants.accentGreen,
-                      ),
-                    ],
+          if (!isForScreenShots)
+            Padding(
+              padding: EdgeInsets.only(top: 4.h),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    "Balance: ",
+                    style: TextStyle(color: Colors.white54, fontSize: 12.sp),
                   ),
-                ),
-              ],
+                  InkWell(
+                    onTap: () {
+                      _openPurchaseScreen();
+                    },
+                    child: Row(
+                      children: [
+                        Text(
+                          "$_tokens Credits",
+                          style: TextStyle(
+                            color: _tokens > 0
+                                ? UIConstants.accentGreen
+                                : Colors.redAccent,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13.sp,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.add_circle,
+                          size: 14.sp,
+                          color: UIConstants.accentGreen,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -675,15 +677,13 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
-          child: Text(
+          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+          child: AppText(
             "Recent Searches",
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.6),
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
-            ),
+            color: Colors.white.withValues(alpha: 0.6),
+            fontSize: 12.sp,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
           ),
         ),
         SizedBox(
@@ -694,7 +694,7 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
             child: Row(
               children: _filteredChips.map((item) {
                 return Container(
-                  margin: const EdgeInsets.only(right: 8, bottom: 8),
+                  margin: EdgeInsets.only(right: 8.w, bottom: 8.h),
                   child: Material(
                     color: UIConstants.cardSurface,
                     borderRadius: BorderRadius.circular(20),
@@ -711,15 +711,13 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
+                            AppText(
                               item.originalName,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 13.sp,
-                                fontWeight: FontWeight.w500,
-                              ),
+                              color: Colors.white,
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w500,
                             ),
-                            const SizedBox(width: 8),
+                            8.horizontalSpace,
                             InkWell(
                               onTap: () =>
                                   _deleteChipMedicine(item.originalName),
