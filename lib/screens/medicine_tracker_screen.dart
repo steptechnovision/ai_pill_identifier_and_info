@@ -12,6 +12,7 @@ import 'package:ai_medicine_tracker/screens/add_reminder_screen.dart';
 import 'package:ai_medicine_tracker/screens/medicine_history_screen.dart';
 import 'package:ai_medicine_tracker/screens/reminders_screen.dart';
 import 'package:ai_medicine_tracker/screens/token_purchase_screen.dart';
+import 'package:ai_medicine_tracker/widgets/app_bar_title_view.dart';
 import 'package:ai_medicine_tracker/widgets/app_text.dart';
 import 'package:ai_medicine_tracker/widgets/collapsible_card.dart';
 import 'package:ai_medicine_tracker/widgets/custom_text_field.dart';
@@ -352,75 +353,85 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
     return Scaffold(
       extendBodyBehindAppBar: false,
       backgroundColor: UIConstants.darkBackgroundStart,
+      drawer: _buildDrawer(),
       appBar: AppBar(
         backgroundColor: UIConstants.darkBackgroundStart,
         elevation: 0,
-        title: AppText(
-          Constants.appName,
-          fontWeight: FontWeight.bold,
-          fontSize: 20.sp,
-          maxLines: 10,
-        ),
-        actions: [
-          if (!isForScreenShots)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-              child: InkWell(
-                onTap: () {
-                  _openPurchaseScreen();
-                },
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(10, 4, 8, 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFD700).withOpacity(0.15),
-                    // Soft Gold BG
-                    borderRadius: BorderRadius.circular(50),
-                    border: Border.all(
-                      color: const Color(0xFFFFD700).withOpacity(0.3),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Icon
-                      const Icon(
-                        Icons.stars_rounded,
-                        color: Color(0xFFFFD700), // Gold
-                        size: 18,
-                      ),
-                      const SizedBox(width: 6),
-
-                      // Count
-                      AppText(
-                        "$_tokens",
-                        fontSize: 14.sp,
-                        maxLines: 20,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-
-                      const SizedBox(width: 6),
-
-                      // Small Plus Icon (Call to Action)
-                      Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.3),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.add,
-                          size: 10,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+        leading: Builder(
+          builder: (context) {
+            return IconButton(
+              icon: const Icon(
+                Icons.menu_rounded,
+                color: Colors.white,
+                size: 22,
               ),
-            ),
+              tooltip: "Menu",
+              splashRadius: 20,
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            );
+          },
+        ),
+        title: AppBarTitleView(title: Constants.appName),
+        actions: [
+          // if (!isForScreenShots)
+          //   Padding(
+          //     padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+          //     child: InkWell(
+          //       onTap: () {
+          //         _openPurchaseScreen();
+          //       },
+          //       borderRadius: BorderRadius.circular(20),
+          //       child: Container(
+          //         padding: const EdgeInsets.fromLTRB(10, 4, 8, 4),
+          //         decoration: BoxDecoration(
+          //           color: const Color(0xFFFFD700).withOpacity(0.15),
+          //           // Soft Gold BG
+          //           borderRadius: BorderRadius.circular(50),
+          //           border: Border.all(
+          //             color: const Color(0xFFFFD700).withOpacity(0.3),
+          //             width: 1,
+          //           ),
+          //         ),
+          //         child: Row(
+          //           mainAxisSize: MainAxisSize.min,
+          //           children: [
+          //             // Icon
+          //             const Icon(
+          //               Icons.stars_rounded,
+          //               color: Color(0xFFFFD700), // Gold
+          //               size: 18,
+          //             ),
+          //             const SizedBox(width: 6),
+          //
+          //             // Count
+          //             AppText(
+          //               "$_tokens",
+          //               fontSize: 14.sp,
+          //               maxLines: 20,
+          //               color: Colors.white,
+          //               fontWeight: FontWeight.bold,
+          //             ),
+          //
+          //             const SizedBox(width: 6),
+          //
+          //             // Small Plus Icon (Call to Action)
+          //             Container(
+          //               padding: const EdgeInsets.all(2),
+          //               decoration: BoxDecoration(
+          //                 color: Colors.black.withOpacity(0.3),
+          //                 shape: BoxShape.circle,
+          //               ),
+          //               child: const Icon(
+          //                 Icons.add,
+          //                 size: 10,
+          //                 color: Colors.white,
+          //               ),
+          //             ),
+          //           ],
+          //         ),
+          //       ),
+          //     ),
+          //   ),
           IconButton(
             icon: const Icon(Icons.alarm, color: Colors.white),
             tooltip: 'Reminders',
@@ -487,6 +498,161 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
         ),
       ),
       bottomNavigationBar: _buildBottomBar(),
+    );
+  }
+
+  Widget _buildDrawer() {
+    return Drawer(
+      backgroundColor: UIConstants.darkBackgroundStart,
+      child: Column(
+        children: [
+          // 1. HEADER
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.fromLTRB(20.w, 60.h, 20.w, 20.h),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  UIConstants.accentGreen.withValues(alpha: 0.2),
+                  UIConstants.darkBackgroundStart,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              border: Border(
+                bottom: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Logo Placeholder
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.05),
+                    border: Border.all(
+                      color: UIConstants.accentGreen.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.medication_liquid_rounded,
+                    size: 32,
+                    color: UIConstants.accentGreen,
+                  ),
+                ),
+                SizedBox(height: 16.h),
+                AppText(
+                  Constants.appName,
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+                SizedBox(height: 4.h),
+                AppText(
+                  "Version 1.0.0",
+                  fontSize: 12.sp,
+                  color: Colors.white54,
+                ),
+              ],
+            ),
+          ),
+
+          // 2. MENU ITEMS
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.symmetric(vertical: 10.h),
+              physics: const BouncingScrollPhysics(),
+              children: [
+                // --- PREMIUM SECTION ---
+                _buildDrawerItem(
+                  icon: Icons.stars_rounded,
+                  text: "Get Premium Tokens",
+                  iconColor: const Color(0xFFFFD700),
+                  // Gold
+                  textColor: const Color(0xFFFFD700),
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    _openPurchaseScreen();
+                  },
+                ),
+                Divider(color: Colors.white.withValues(alpha: 0.1), height: 30),
+
+                // --- ACTIONS ---
+                _buildDrawerItem(
+                  icon: Icons.share_rounded,
+                  text: "Share App",
+                  onTap: () {
+                    Navigator.pop(context);
+                    // TODO: Add share logic using share_plus package
+                    // Share.share('Check out this amazing Medicine AI app!');
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.star_rate_rounded,
+                  text: "Rate Us",
+                  onTap: () {
+                    Navigator.pop(context);
+                    // TODO: Add rating logic using url_launcher or in_app_review
+                  },
+                ),
+
+                Divider(color: Colors.white.withOpacity(0.1), height: 30),
+
+                // --- LEGAL ---
+                _buildDrawerItem(
+                  icon: Icons.privacy_tip_outlined,
+                  text: "Privacy Policy",
+                  onTap: () {
+                    Navigator.pop(context);
+                    // TODO: Open Privacy Policy URL
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.description_outlined,
+                  text: "Terms & Conditions",
+                  onTap: () {
+                    Navigator.pop(context);
+                    // TODO: Open T&C URL
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          // 3. FOOTER
+          Padding(
+            padding: EdgeInsets.all(20.h),
+            child: AppText(
+              "Made with ❤️ in India",
+              fontSize: 12.sp,
+              color: Colors.white30,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDrawerItem({
+    required IconData icon,
+    required String text,
+    required VoidCallback onTap,
+    Color iconColor = Colors.white70,
+    Color textColor = Colors.white,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: iconColor, size: 22),
+      title: AppText(
+        text,
+        fontSize: 15.sp,
+        fontWeight: FontWeight.w500,
+        color: textColor,
+      ),
+      onTap: onTap,
+      dense: true,
+      visualDensity: VisualDensity.compact,
     );
   }
 

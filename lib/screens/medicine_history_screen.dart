@@ -2,6 +2,7 @@ import 'package:ai_medicine_tracker/helper/app_assets.dart';
 import 'package:ai_medicine_tracker/helper/app_colors.dart';
 import 'package:ai_medicine_tracker/helper/utils.dart';
 import 'package:ai_medicine_tracker/repository/medicine_repository.dart';
+import 'package:ai_medicine_tracker/widgets/app_bar_title_view.dart';
 import 'package:ai_medicine_tracker/widgets/app_text.dart';
 import 'package:ai_medicine_tracker/widgets/collapsible_card.dart';
 import 'package:ai_medicine_tracker/widgets/custom_text_field.dart';
@@ -149,12 +150,8 @@ class _MedicineHistoryScreenState extends State<MedicineHistoryScreen> {
               }
             },
           ),
-          title: AppText(
-            _selectedItem == null ? "History" : "Details",
-            color: Colors.white,
-            fontSize: 18.sp,
-            maxLines: 10,
-            fontWeight: FontWeight.bold,
+          title: AppBarTitleView(
+            title: _selectedItem == null ? "History" : "Details",
           ),
         ),
         body: _isLoading
@@ -298,9 +295,7 @@ class _MedicineHistoryScreenState extends State<MedicineHistoryScreen> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: UIConstants.accentGreen.withValues(
-                        alpha: 0.15,
-                      ),
+                      color: UIConstants.accentGreen.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(

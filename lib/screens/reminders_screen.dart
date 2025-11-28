@@ -1,4 +1,5 @@
 import 'package:ai_medicine_tracker/helper/app_colors.dart';
+import 'package:ai_medicine_tracker/widgets/app_bar_title_view.dart';
 import 'package:ai_medicine_tracker/widgets/app_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -72,12 +73,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
           icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: AppText(
-          'Medicine Reminders',
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontSize: 18.sp,
-        ),
+        title: AppBarTitleView(title: 'Medicine Reminders'),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _openAdd(),

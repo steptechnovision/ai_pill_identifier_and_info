@@ -1,4 +1,5 @@
 import 'package:ai_medicine_tracker/helper/app_colors.dart';
+import 'package:ai_medicine_tracker/widgets/app_bar_title_view.dart';
 import 'package:ai_medicine_tracker/widgets/app_text.dart';
 import 'package:ai_medicine_tracker/widgets/custom_text_field.dart';
 import 'package:flutter/material.dart';
@@ -106,12 +107,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             icon: const Icon(Icons.close_rounded, color: Colors.white),
             onPressed: () => Navigator.pop(context),
           ),
-          title: AppText(
-            'Add Reminder',
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 18.sp,
-          ),
+          title: AppBarTitleView(title: 'Add Reminder'),
         ),
         body: AbsorbPointer(
           absorbing: _saving,
