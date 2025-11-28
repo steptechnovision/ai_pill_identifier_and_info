@@ -1,7 +1,10 @@
 import 'dart:developer' as developer;
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 
 printLog(dynamic data, {bool printLog = false}) {
   if (printLog) {
@@ -90,5 +93,75 @@ class Utils {
     // ScaffoldMessenger.of(
     //   context,
     // ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: color));
+  }
+
+  // ---------------------------------------------------------------------------
+  // 1. PREMIUM LOADING (Context-Free!)
+  // ---------------------------------------------------------------------------
+  static void showLoading({String message = "Loading..."}) {
+    SmartDialog.showLoading(
+      maskColor: Colors.black.withValues(alpha: 0.7),
+      builder: (_) => Container(
+        padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 24.h),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E1E),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.5),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(
+              color: Colors.greenAccent,
+              strokeWidth: 3,
+            ),
+            20.verticalSpace,
+            Text(
+              message,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.9),
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w500,
+                decoration: TextDecoration.none,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static Future<void> hideLoading() async {
+    await SmartDialog.dismiss();
+  }
+
+  // ---------------------------------------------------------------------------
+  // 2. INTERNET CHECK (With Smart Dialog)
+  // ---------------------------------------------------------------------------
+  static Future<bool> checkInternetWithLoading() async {
+    showLoading(message: "Loading...");
+
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    try {
+      final result = await InternetAddress.lookup(
+        'google.com',
+      ).timeout(const Duration(seconds: 12));
+
+      final hasNet = result.isNotEmpty && result.first.rawAddress.isNotEmpty;
+
+      await hideLoading();
+      return hasNet;
+    } catch (_) {
+      await hideLoading();
+      return false;
+    }
   }
 }

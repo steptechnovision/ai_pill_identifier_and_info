@@ -110,6 +110,16 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
     final isCacheHit = repo.cacheContains(name.toLowerCase());
 
     if (!isCacheHit) {
+      // 🌐 Internet check
+      final online = await Utils.checkInternetWithLoading();
+      if (!online) {
+        Utils.showMessage(context,
+          "No internet connection. Please check your network.",
+          isError: true,
+        );
+        return;
+      }
+
       // requires 1 token
       if (Prefs.getTokens() <= 0) {
         _showNoTokenDialog();
@@ -595,8 +605,6 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
               ),
             ],
           ),
-
-          // ✨ Token Display Directly Below Search
           Padding(
             padding: EdgeInsets.only(top: 4.h),
             child: Row(

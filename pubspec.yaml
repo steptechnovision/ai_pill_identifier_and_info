@@ -46,6 +46,7 @@ dependencies:
   flutter_local_notifications: ^19.5.0
   timezone: ^0.10.1
   flutter_timezone: ^5.0.1
+  flutter_smart_dialog: ^4.9.8+9
 
 dev_dependencies:
   flutter_test:
