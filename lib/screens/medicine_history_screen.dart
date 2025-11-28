@@ -81,6 +81,49 @@ class _MedicineHistoryScreenState extends State<MedicineHistoryScreen> {
     Utils.showToast(context, message: "Removed from history 🗑");
   }
 
+  Future<bool> _confirmDelete(MedicineItem item) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1E1E1E),
+          // Dark Theme Surface
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            "Remove from History?",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          content: Text(
+            "Are you sure you want to delete '${item.originalName}'? This action cannot be undone.",
+            style: const TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false), // Cancel
+              child: const Text(
+                "Cancel",
+                style: TextStyle(color: Colors.white54),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true), // Confirm
+              child: const Text(
+                "Delete",
+                style: TextStyle(
+                  color: Colors.redAccent,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+    return confirmed ?? false;
+  }
+
   // ---------------------------------------------------------------------------
   // IMPROVED UI BUILD
   // ---------------------------------------------------------------------------
@@ -118,7 +161,11 @@ class _MedicineHistoryScreenState extends State<MedicineHistoryScreen> {
           ),
         ),
         body: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: UIConstants.accentGreen))
+            ? const Center(
+                child: CircularProgressIndicator(
+                  color: UIConstants.accentGreen,
+                ),
+              )
             : _selectedItem == null
             ? _buildHistoryList()
             : _buildDetails(_selectedItem!),
@@ -133,7 +180,11 @@ class _MedicineHistoryScreenState extends State<MedicineHistoryScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.history_toggle_off_rounded, size: 48, color: Colors.white.withValues(alpha: 0.2)),
+            Icon(
+              Icons.history_toggle_off_rounded,
+              size: 48,
+              color: Colors.white.withValues(alpha: 0.2),
+            ),
             const SizedBox(height: 16),
             const Text(
               "No history found.",
@@ -168,7 +219,8 @@ class _MedicineHistoryScreenState extends State<MedicineHistoryScreen> {
               final item = _filteredHistory[index];
               final title = _groupTitle(item.lastUsedAt);
 
-              final showHeader = index == 0 ||
+              final showHeader =
+                  index == 0 ||
                   title != _groupTitle(_filteredHistory[index - 1].lastUsedAt);
 
               return Column(
@@ -200,74 +252,116 @@ class _MedicineHistoryScreenState extends State<MedicineHistoryScreen> {
 
   // 📌 INDIVIDUAL CARD ITEM
   Widget _buildHistoryCard(MedicineItem item) {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04), // Soft Fill
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
+    return Dismissible(
+      key: ValueKey(item.canonicalName),
+      // Unique Key is required
+      direction: DismissDirection.endToStart,
+      // Swipe right-to-left
+
+      // 1. CONFIRM BEFORE SWIPE
+      confirmDismiss: (direction) async {
+        return await _confirmDelete(item);
+      },
+
+      // 2. ACTION ON SWIPE COMPLETE
+      onDismissed: (direction) {
+        _deleteFromHistory(item);
+      },
+
+      // 3. RED BACKGROUND BEHIND CARD
+      background: Container(
+        margin: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+        decoration: BoxDecoration(
+          color: Colors.redAccent.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(16),
-          onTap: () => setState(() => _selectedItem = item),
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
-            child: Row(
-              children: [
-                // Soft Icon Box
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.appPrimaryRedColor.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.medication_rounded,
-                    color: AppColors.appPrimaryRedColor,
-                    size: 20,
-                  ),
-                ),
-                SizedBox(width: 10.w),
+        ),
+        alignment: Alignment.centerRight,
+        padding: EdgeInsets.only(right: 20.w),
+        child: const Icon(
+          Icons.delete_outline,
+          color: Colors.redAccent,
+          size: 28,
+        ),
+      ),
 
-                // Title
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.originalName,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15.sp,
-                          color: Colors.white,
-                        ),
+      // 4. ACTUAL CARD CONTENT
+      child: Container(
+        margin: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.04), // Soft Fill
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => setState(() => _selectedItem = item),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+              child: Row(
+                children: [
+                  // Soft Icon Box
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.appPrimaryRedColor.withValues(
+                        alpha: 0.15,
                       ),
-                      const SizedBox(height: 1),
-                      Text(
-                        "Tap to view details",
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          color: Colors.white.withValues(alpha: 0.3),
-                        ),
-                      ),
-                    ],
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.medication_rounded,
+                      color: AppColors.appPrimaryRedColor,
+                      size: 20,
+                    ),
                   ),
-                ),
+                  SizedBox(width: 10.w),
 
-                // Delete Action (Subtle)
-                IconButton(
-                  icon: Icon(
-                    Icons.delete_outline_rounded,
-                    color: Colors.white.withValues(alpha: 0.3),
-                    size: 20,
+                  // Title
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.originalName,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15.sp,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 1),
+                        Text(
+                          "Tap to view details",
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color: Colors.white.withValues(alpha: 0.3),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  visualDensity: VisualDensity.compact,
-                  tooltip: "Remove from history",
-                  onPressed: () => _deleteFromHistory(item),
-                ),
-              ],
+
+                  // Delete Action (Subtle)
+                  IconButton(
+                    icon: Icon(
+                      Icons.delete_outline_rounded,
+                      color: Colors.white.withValues(alpha: 0.3),
+                      size: 20,
+                    ),
+                    visualDensity: VisualDensity.compact,
+                    tooltip: "Remove from history",
+                    // 5. CONFIRM BEFORE CLICK DELETE
+                    onPressed: () async {
+                      final confirm = await _confirmDelete(item);
+                      if (confirm) {
+                        _deleteFromHistory(item);
+                      }
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -315,7 +409,10 @@ class _MedicineHistoryScreenState extends State<MedicineHistoryScreen> {
                       ),
                       SizedBox(height: 6.h),
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8.w,
+                          vertical: 3.h,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
