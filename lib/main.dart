@@ -2,13 +2,15 @@ import 'dart:io';
 
 import 'package:ai_medicine_tracker/helper/constant.dart';
 import 'package:ai_medicine_tracker/helper/prefs.dart';
-import 'package:ai_medicine_tracker/screens/medicine_tracker_screen.dart';
+import 'package:ai_medicine_tracker/screens/splash_screen.dart';
 import 'package:ai_medicine_tracker/services/reminder_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+
+bool isForScreenShots = true;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -120,7 +122,7 @@ class MedicineApp extends StatelessWidget {
           navigatorObservers: [FlutterSmartDialog.observer],
           // here
           builder: FlutterSmartDialog.init(),
-          home: const MedicineTrackerScreen(),
+          home: const SplashScreen(),
         );
       },
     );
