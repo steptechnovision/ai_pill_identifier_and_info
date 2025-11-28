@@ -104,7 +104,14 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
 
   Future<void> _searchMedicine() async {
     final name = _controller.text.trim();
-    if (name.isEmpty) return;
+    if (name.isEmpty) {
+      Utils.showMessage(
+        context,
+        "Enter medicine name to search",
+        isError: true,
+      );
+      return;
+    }
 
     // ⚠️ Check token only if API will be used
     final isCacheHit = repo.cacheContains(name.toLowerCase());
@@ -113,7 +120,8 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
       // 🌐 Internet check
       final online = await Utils.checkInternetWithLoading();
       if (!online) {
-        Utils.showMessage(context,
+        Utils.showMessage(
+          context,
           "No internet connection. Please check your network.",
           isError: true,
         );
@@ -892,7 +900,16 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
     );
   }
 
-  void _openPurchaseScreen() {
+  void _openPurchaseScreen() async {
+    final online = await Utils.checkInternetWithLoading();
+    if (!online) {
+      Utils.showMessage(
+        context,
+        "No internet connection. Please check your network.",
+        isError: true,
+      );
+      return;
+    }
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const TokenPurchaseScreen()),
