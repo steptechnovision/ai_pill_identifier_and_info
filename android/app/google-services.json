@@ -1,0 +1,208 @@
+{
+  "project_info": {
+    "project_number": "810645224721",
+    "firebase_url": "https://appprojects-ce9c6.firebaseio.com",
+    "project_id": "appprojects-ce9c6",
+    "storage_bucket": "appprojects-ce9c6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:810645224721:android:efdc55d05f591d074aa0b0",
+        "android_client_info": {
+          "package_name": "com.hd.camera.photo.filter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDMDg7v8bIDMbvqpfHgqAeuZUazBpW1v7Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      },
+      "admob_app_id": "ca-app-pub-5003311732017255~6241821675"
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:810645224721:android:303d8b5ef55280884aa0b0",
+        "android_client_info": {
+          "package_name": "com.musicplayer.audio.mp3player.songs"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDMDg7v8bIDMbvqpfHgqAeuZUazBpW1v7Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      },
+      "admob_app_id": "ca-app-pub-5003311732017255~8993498393"
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:810645224721:android:bc0d66b992ae57614aa0b0",
+        "android_client_info": {
+          "package_name": "com.saveinstvd.download.video.reels.story.anyvideodownloader"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDMDg7v8bIDMbvqpfHgqAeuZUazBpW1v7Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:810645224721:android:8e487e0d0a96aa764aa0b0",
+        "android_client_info": {
+          "package_name": "com.steptechnovision.aipillidentifier"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDMDg7v8bIDMbvqpfHgqAeuZUazBpW1v7Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:810645224721:android:f487d1fe822baf644aa0b0",
+        "android_client_info": {
+          "package_name": "com.steptechnovision.photography.gallery"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDMDg7v8bIDMbvqpfHgqAeuZUazBpW1v7Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      },
+      "admob_app_id": "ca-app-pub-5003311732017255~5676008795"
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:810645224721:android:b1f8135d702a0fc14aa0b0",
+        "android_client_info": {
+          "package_name": "com.steptechnovision.photography.gallery.photo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDMDg7v8bIDMbvqpfHgqAeuZUazBpW1v7Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      },
+      "admob_app_id": "ca-app-pub-5003311732017255~8684531387"
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:810645224721:android:10be056372ddfc6c4aa0b0",
+        "android_client_info": {
+          "package_name": "com.steptechnovision.whatsappstatusaver"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDMDg7v8bIDMbvqpfHgqAeuZUazBpW1v7Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      },
+      "admob_app_id": "ca-app-pub-5003311732017255~6455198102"
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:810645224721:android:98f96a429bc288914aa0b0",
+        "android_client_info": {
+          "package_name": "com.trading.stockmarket.tips"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDMDg7v8bIDMbvqpfHgqAeuZUazBpW1v7Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      },
+      "admob_app_id": "ca-app-pub-5003311732017255~7100092876"
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:810645224721:android:adb6fc77dca2202c",
+        "android_client_info": {
+          "package_name": "steptechnovision.BlackAndWhitePhotoEffectEditor"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDMDg7v8bIDMbvqpfHgqAeuZUazBpW1v7Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      },
+      "admob_app_id": "ca-app-pub-5003311732017255~8833724755"
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:810645224721:android:4f1d58a1d3872c8b4aa0b0",
+        "android_client_info": {
+          "package_name": "steptechnovision.tapthetiles"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDMDg7v8bIDMbvqpfHgqAeuZUazBpW1v7Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

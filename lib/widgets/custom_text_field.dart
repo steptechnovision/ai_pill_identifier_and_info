@@ -1,12 +1,9 @@
-import 'package:ai_medicine_tracker/helper/app_colors.dart';
-import 'package:ai_medicine_tracker/helper/utils.dart';
 import 'package:ai_medicine_tracker/widgets/counter_text_widget.dart';
-import 'package:ai_medicine_tracker/widgets/dialogs/voice_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
+// import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 class CustomTextField extends StatefulWidget {
   final String? hintText;
@@ -95,15 +92,15 @@ class CustomTextFieldState extends State<CustomTextField> {
   bool _obscureText = true;
   bool _hasFocus = false; // ✨ Tracks focus for styling
 
-  late stt.SpeechToText _speech;
-  bool _isListening = false;
+  // late stt.SpeechToText _speech;
+  final bool _isListening = false;
   BuildContext? _bottomSheetContext;
   bool _showClearIcon = false;
 
   @override
   void initState() {
     super.initState();
-    _speech = stt.SpeechToText();
+    // _speech = stt.SpeechToText();
     widget.controller?.addListener(_handleTextChange);
 
     // ✨ Listen to focus changes to animate the border
@@ -132,76 +129,76 @@ class CustomTextFieldState extends State<CustomTextField> {
   }
 
   Future<void> _listen() async {
-    bool available = await _speech.initialize(
-      onStatus: (status) {
-        if (status == "done") {
-          if (_bottomSheetContext != null) {
-            Navigator.pop(_bottomSheetContext!);
-            _bottomSheetContext = null;
-          }
-        }
-      },
-      onError: (error) {
-        print("ERROR: $error");
-        Utils.runAfterCurrentSuccess(() {
-          if (_bottomSheetContext != null) {
-            Navigator.pop(_bottomSheetContext!);
-            _bottomSheetContext = null;
-          }
-          _showVoiceDialog(hasError: true);
-        });
-      },
-    );
-
-    if (available) {
-      _speech.listen(
-        onResult: (result) {
-          final spokenText = result.recognizedWords;
-          widget.controller?.text = spokenText;
-
-          if (result.finalResult) {
-            widget.onVoiceResult?.call(spokenText);
-            if (_bottomSheetContext != null) {
-              Navigator.pop(_bottomSheetContext!);
-              _bottomSheetContext = null;
-            }
-          }
-        },
-      );
-      _showVoiceDialog(isListening: true);
-    }
+    // bool available = await _speech.initialize(
+    //   onStatus: (status) {
+    //     if (status == "done") {
+    //       if (_bottomSheetContext != null) {
+    //         Navigator.pop(_bottomSheetContext!);
+    //         _bottomSheetContext = null;
+    //       }
+    //     }
+    //   },
+    //   onError: (error) {
+    //     print("ERROR: $error");
+    //     Utils.runAfterCurrentSuccess(() {
+    //       if (_bottomSheetContext != null) {
+    //         Navigator.pop(_bottomSheetContext!);
+    //         _bottomSheetContext = null;
+    //       }
+    //       _showVoiceDialog(hasError: true);
+    //     });
+    //   },
+    // );
+    //
+    // if (available) {
+    //   _speech.listen(
+    //     onResult: (result) {
+    //       final spokenText = result.recognizedWords;
+    //       widget.controller?.text = spokenText;
+    //
+    //       if (result.finalResult) {
+    //         widget.onVoiceResult?.call(spokenText);
+    //         if (_bottomSheetContext != null) {
+    //           Navigator.pop(_bottomSheetContext!);
+    //           _bottomSheetContext = null;
+    //         }
+    //       }
+    //     },
+    //   );
+    //   _showVoiceDialog(isListening: true);
+    // }
   }
 
-  void _showVoiceDialog({bool isListening = false, bool hasError = false}) {
-    showModalBottomSheet(
-      context: context,
-      isDismissible: false,
-      backgroundColor: Colors.grey[900], // Dark theme friendly
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(15.r)),
-      ),
-      builder: (ctx) {
-        _bottomSheetContext = ctx;
-        return VoiceDialog(
-          isListening: isListening,
-          hasError: hasError,
-          onRetry: () {
-            Navigator.pop(ctx);
-            _listen();
-          },
-          onClose: () {
-            _speech.stop();
-            Utils.runAfterCurrentSuccess(() {
-              if (_bottomSheetContext != null) {
-                Navigator.pop(_bottomSheetContext!);
-                _bottomSheetContext = null;
-              }
-            });
-          },
-        );
-      },
-    );
-  }
+  // void _showVoiceDialog({bool isListening = false, bool hasError = false}) {
+  //   showModalBottomSheet(
+  //     context: context,
+  //     isDismissible: false,
+  //     backgroundColor: Colors.grey[900], // Dark theme friendly
+  //     shape: RoundedRectangleBorder(
+  //       borderRadius: BorderRadius.vertical(top: Radius.circular(15.r)),
+  //     ),
+  //     builder: (ctx) {
+  //       _bottomSheetContext = ctx;
+  //       return VoiceDialog(
+  //         isListening: isListening,
+  //         hasError: hasError,
+  //         onRetry: () {
+  //           Navigator.pop(ctx);
+  //           _listen();
+  //         },
+  //         onClose: () {
+  //           _speech.stop();
+  //           Utils.runAfterCurrentSuccess(() {
+  //             if (_bottomSheetContext != null) {
+  //               Navigator.pop(_bottomSheetContext!);
+  //               _bottomSheetContext = null;
+  //             }
+  //           });
+  //         },
+  //       );
+  //     },
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {

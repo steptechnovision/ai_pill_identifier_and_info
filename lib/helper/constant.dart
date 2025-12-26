@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -8,8 +10,24 @@ class Constants {
   static const String packageName = 'com.steptechnovision.aipillidentifier';
   static const String appName = 'AI Pill Identifier & Info';
   static double screenHorizontalPadding = 16.w;
-  static const String privacyPolicyUrl = 'https://steptechnovision.blogspot.com/2025/11/privacy-policy-ai-pill-identifier-info.html';
+  static const String privacyPolicyUrl = 'https://steptechnovision.blogspot.com/2025/12/privacy-policy-ai-pill-identifier-info.html';
   static const String termsAndConditionUrl = 'https://steptechnovision.blogspot.com/2025/11/terms-conditions-ai-pill-identifier-info.html';
+  static const String emailAddress = 'steptechnovision@gmail.com';
+  static String get shareText {
+    const baseMessage =
+        "💊 Stop guessing about your medicines!\n\n"
+        "I use $appName to get instant, detailed AI insights on side effects, dosage, and usage.\n\n"
+        "Get it here 👇\n";
+
+    if (Platform.isAndroid) {
+      return "$baseMessage"
+          "https://play.google.com/store/apps/details?id=${Constants.packageName}";
+    } else {
+      return "$baseMessage"
+          "https://apps.apple.com/app/id${Constants.appStoreId}";
+    }
+  }
+  static const String appStoreId = '';
 
   static Map<String, dynamic> getOpenAiRequestData(String medicineName) {
     return {

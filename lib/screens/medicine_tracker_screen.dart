@@ -12,13 +12,19 @@ import 'package:ai_medicine_tracker/screens/add_reminder_screen.dart';
 import 'package:ai_medicine_tracker/screens/medicine_history_screen.dart';
 import 'package:ai_medicine_tracker/screens/reminders_screen.dart';
 import 'package:ai_medicine_tracker/screens/token_purchase_screen.dart';
+import 'package:ai_medicine_tracker/screens/webview_page.dart';
 import 'package:ai_medicine_tracker/widgets/app_bar_title_view.dart';
 import 'package:ai_medicine_tracker/widgets/app_text.dart';
 import 'package:ai_medicine_tracker/widgets/collapsible_card.dart';
 import 'package:ai_medicine_tracker/widgets/custom_text_field.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:in_app_review/in_app_review.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MedicineTrackerScreen extends StatefulWidget {
   const MedicineTrackerScreen({super.key});
@@ -39,6 +45,7 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
   List<MedicineItem> _filteredChips = [];
   bool _noMedicineFound = false;
   int _tokens = 0;
+  String _appVersion = "Version ...";
 
   @override
   void initState() {
@@ -52,7 +59,17 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
     _tokens = Prefs.getTokens();
     _combineMedicines();
     _filteredChips = _chipMedicines;
+    _loadAppVersion();
     setState(() {});
+  }
+
+  Future<void> _loadAppVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _appVersion = "Version ${packageInfo.version}";
+      });
+    }
   }
 
   Future<void> _loadRecentSearches() async {
@@ -550,11 +567,7 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
                   color: Colors.white,
                 ),
                 SizedBox(height: 4.h),
-                AppText(
-                  "Version 1.0.0",
-                  fontSize: 12.sp,
-                  color: Colors.white54,
-                ),
+                AppText(_appVersion, fontSize: 12.sp, color: Colors.white54),
               ],
             ),
           ),
@@ -585,20 +598,36 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
                   text: "Share App",
                   onTap: () {
                     Navigator.pop(context);
-                    // TODO: Add share logic using share_plus package
-                    // Share.share('Check out this amazing Medicine AI app!');
+                    SharePlus.instance.share(
+                      ShareParams(
+                        text: Constants.shareText,
+                        subject: "Check out ${Constants.appName}!",
+                      ),
+                    );
                   },
                 ),
                 _buildDrawerItem(
                   icon: Icons.star_rate_rounded,
                   text: "Rate Us",
-                  onTap: () {
+                  onTap: () async {
                     Navigator.pop(context);
-                    // TODO: Add rating logic using url_launcher or in_app_review
+                    final InAppReview inAppReview = InAppReview.instance;
+
+                    if (await inAppReview.isAvailable()) {
+                      // 🌟 Option A: Show the native In-App popup (Best UX)
+                      // Note: This popup might not show if the user has already rated recently.
+                      inAppReview.requestReview();
+                    } else {
+                      // 🔗 Option B: Fallback - Open the Store Listing
+                      // This handles 'market://' for Android and App Store URL for iOS automatically
+                      inAppReview.openStoreListing(
+                        appStoreId: Constants.appStoreId, // Required for iOS
+                      );
+                    }
                   },
                 ),
 
-                Divider(color: Colors.white.withOpacity(0.1), height: 30),
+                Divider(color: Colors.white.withValues(alpha: 0.1), height: 30),
 
                 // --- LEGAL ---
                 _buildDrawerItem(
@@ -606,7 +635,15 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
                   text: "Privacy Policy",
                   onTap: () {
                     Navigator.pop(context);
-                    // TODO: Open Privacy Policy URL
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => WebViewPage(
+                          title: 'Privacy Policy',
+                          url: Constants.privacyPolicyUrl,
+                        ),
+                      ),
+                    );
                   },
                 ),
                 _buildDrawerItem(
@@ -614,7 +651,32 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
                   text: "Terms & Conditions",
                   onTap: () {
                     Navigator.pop(context);
-                    // TODO: Open T&C URL
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => WebViewPage(
+                          title: 'Terms & Conditions',
+                          url: Constants.termsAndConditionUrl,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.mail_outline_rounded,
+                  text: "Contact Support",
+                  onTap: () {
+                    Navigator.pop(context);
+                    try {
+                      final Uri emailLaunchUri = Uri(
+                        scheme: 'mailto',
+                        path: Constants.emailAddress,
+                        query: 'subject=App Support Request',
+                      );
+                      launchUrl(emailLaunchUri);
+                    } catch (e) {
+                      print(e);
+                    }
                   },
                 ),
               ],
@@ -771,6 +833,9 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
                   FocusScope.of(context).unfocus();
                   _searchMedicine();
                   _combineMedicines(resetFilter: true);
+                },
+                onLongPress: () {
+                  FirebaseCrashlytics.instance.crash();
                 },
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
@@ -1059,12 +1124,12 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
           ),
           if (!isForScreenShots)
             AppText(
-              "*This app provides AI-generated info. Consult a doctor before taking any medication.",
+              "Disclaimer: This app provides AI-generated information for educational purposes only. It does not replace professional medical advice. Always consult a doctor.",
               textAlign: TextAlign.center,
               fontSize: 9.sp,
               color: Colors.grey,
               lineHeight: 1,
-              maxLines: 20,
+              maxLines: 200,
             ),
         ],
       ),
@@ -1083,7 +1148,7 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
     }
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const TokenPurchaseScreen()),
+      MaterialPageRoute(builder: (_) => const PurchaseTokenScreen()),
     ).then((_) {
       setState(() {
         _tokens = Prefs.getTokens(); // refresh token count

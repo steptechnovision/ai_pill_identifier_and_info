@@ -30,9 +30,9 @@ class ReminderService {
     // Timezone init
     try {
       tz.initializeTimeZones();
-      final TimezoneInfo? timeZoneName =
+      final TimezoneInfo timeZoneName =
           await FlutterTimezone.getLocalTimezone();
-      tz.setLocalLocation(tz.getLocation(timeZoneName?.identifier ?? ''));
+      tz.setLocalLocation(tz.getLocation(timeZoneName.identifier ?? ''));
 
       const androidInit = AndroidInitializationSettings('app_icon');
       const iosInit = DarwinInitializationSettings();
@@ -165,7 +165,11 @@ class ReminderService {
         importance: Importance.max,
       );
 
-      const iosDetails = DarwinNotificationDetails();
+      const iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
 
       final details = const NotificationDetails(
         android: androidDetails,
@@ -213,6 +217,41 @@ class ReminderService {
   Future<void> _rescheduleAllEnabled() async {
     for (final r in _reminders.where((e) => e.enabled)) {
       await _schedule(r);
+    }
+  }
+
+  Future<void> showRemoteNotification({
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    const androidDetails = AndroidNotificationDetails(
+      'high_importance_channel',
+      'App Notifications',
+      channelDescription: 'Important alerts from the app',
+      importance: Importance.max,
+      priority: Priority.high,
+    );
+
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    // 2. Generate a unique ID so messages don't overwrite each other
+    final id = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+    // 3. Show instantly
+    try {
+      await _plugin.show(id, title, body, details, payload: payload);
+    } catch (e) {
+      print("Error showing remote notification: $e");
     }
   }
 }

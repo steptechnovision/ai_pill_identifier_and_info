@@ -236,7 +236,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                 scale: 0.8, // Make switch slightly smaller/compact
                 child: Switch(
                   value: r.enabled,
-                  activeColor: Colors.black,
+                  activeThumbColor: Colors.black,
                   activeTrackColor: UIConstants.accentGreen,
                   inactiveThumbColor: Colors.grey,
                   inactiveTrackColor: Colors.white10,

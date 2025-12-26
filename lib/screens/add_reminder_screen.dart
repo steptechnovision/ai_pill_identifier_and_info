@@ -252,7 +252,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
           ),
           Switch(
             value: _repeatDaily,
-            activeColor: Colors.black,
+            activeThumbColor: Colors.black,
             activeTrackColor: UIConstants.accentGreen,
             inactiveThumbColor: Colors.grey,
             inactiveTrackColor: Colors.white10,

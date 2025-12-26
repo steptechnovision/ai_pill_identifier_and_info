@@ -3,7 +3,7 @@ class AppAssets {
   static const String svgPath = 'assets/svg/';
 
   //ICONS
-  static const String appIconLarge = '${iconPath}app_icon_large.png';
+  static const String appIcon = '${iconPath}icon.png';
 
   //SVG
   static const String icSearch = '${svgPath}ic_search.svg';

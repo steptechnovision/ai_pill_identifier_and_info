@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:ai_medicine_tracker/helper/app_assets.dart';
 import 'package:ai_medicine_tracker/helper/constant.dart';
 import 'package:ai_medicine_tracker/widgets/app_text.dart';
 import 'package:flutter/material.dart';
@@ -182,11 +183,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 width: 1,
               ),
             ),
-            child: Icon(
-              Icons.medication_liquid_rounded,
-              size: 42.r,
-              color: Colors.greenAccent,
-            ),
+            child: Image.asset(AppAssets.appIcon, width: 42.r, height: 42.r),
           ), // AI Sparkle (Top Right)
           Positioned(
             top: 15.h,

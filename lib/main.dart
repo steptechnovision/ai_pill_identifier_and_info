@@ -1,40 +1,44 @@
-import 'dart:io';
-
 import 'package:ai_medicine_tracker/helper/constant.dart';
 import 'package:ai_medicine_tracker/helper/prefs.dart';
 import 'package:ai_medicine_tracker/screens/splash_screen.dart';
+import 'package:ai_medicine_tracker/services/firebase_service.dart';
 import 'package:ai_medicine_tracker/services/reminder_service.dart';
+import 'package:ai_medicine_tracker/services/remote_config_service.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
-import 'package:purchases_flutter/purchases_flutter.dart';
 
 bool isForScreenShots = false;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
-  await Purchases.setLogLevel(LogLevel.debug);
-
-  late PurchasesConfiguration configuration;
   await Prefs.initialize();
-  if (Platform.isAndroid) {
-    configuration = PurchasesConfiguration("goog_utOaJTDNmzZSOBnQOmereRGyWsK");
-  } else {
-    configuration = PurchasesConfiguration("YOUR_IOS_PUBLIC_API_KEY");
-  }
-
-  await Purchases.configure(configuration);
-
   // 🔔 Initialize reminders
   await ReminderService.instance.init();
+
+  // 1. Initialize Firebase & Crashlytics
+  await FirebaseService.init();
+
+  await RemoteConfigService.init();
 
   runApp(const MedicineApp());
 }
 
-class MedicineApp extends StatelessWidget {
+class MedicineApp extends StatefulWidget {
   const MedicineApp({super.key});
+
+  @override
+  State<MedicineApp> createState() => _MedicineAppState();
+}
+
+class _MedicineAppState extends State<MedicineApp> {
+  static FirebaseAnalytics analytics = FirebaseAnalytics.instance;
+  static FirebaseAnalyticsObserver observer = FirebaseAnalyticsObserver(
+    analytics: analytics,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +124,7 @@ class MedicineApp extends StatelessWidget {
             ),
           ),
           // here
-          navigatorObservers: [FlutterSmartDialog.observer],
+          navigatorObservers: [observer, FlutterSmartDialog.observer],
           // here
           builder: FlutterSmartDialog.init(),
           home: const SplashScreen(),

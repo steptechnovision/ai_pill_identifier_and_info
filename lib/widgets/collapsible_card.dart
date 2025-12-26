@@ -197,7 +197,7 @@ class _CollapsibleCardState extends State<CollapsibleCard>
                               ],
                             ),
                           );
-                        }).toList(),
+                        }),
                       ],
                     ),
                   ),
