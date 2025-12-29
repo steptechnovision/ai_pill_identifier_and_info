@@ -10,7 +10,7 @@ class Constants {
   static const String packageName = 'com.steptechnovision.aipillidentifier';
   static const String appName = 'AI Pill Identifier & Info';
   static double screenHorizontalPadding = 16.w;
-  static const String privacyPolicyUrl = 'https://steptechnovision.blogspot.com/2025/12/privacy-policy-ai-pill-identifier-info.html';
+  static const String privacyPolicyUrl = 'https://steptechnovision.blogspot.com/2025/12/privacy-policy-for-ai-pill-identifier.html';
   static const String termsAndConditionUrl = 'https://steptechnovision.blogspot.com/2025/11/terms-conditions-ai-pill-identifier-info.html';
   static const String emailAddress = 'steptechnovision@gmail.com';
   static String get shareText {
