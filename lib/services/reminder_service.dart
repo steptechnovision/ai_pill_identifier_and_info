@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -19,6 +21,9 @@ class ReminderService {
   final List<MedicineReminder> _reminders = [];
   bool _initialized = false;
 
+  final _changesController = StreamController<void>.broadcast();
+  Stream<void> get onChanged => _changesController.stream;
+
   static const String _storageKey = 'medicine_reminders';
 
   // ------------------------------------------------
@@ -30,9 +35,8 @@ class ReminderService {
     // Timezone init
     try {
       tz.initializeTimeZones();
-      final TimezoneInfo timeZoneName =
-          await FlutterTimezone.getLocalTimezone();
-      tz.setLocalLocation(tz.getLocation(timeZoneName.identifier ?? ''));
+      final TimezoneInfo timeZoneName = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(timeZoneName.identifier));
 
       const androidInit = AndroidInitializationSettings('app_icon');
       const iosInit = DarwinInitializationSettings();
@@ -44,20 +48,22 @@ class ReminderService {
 
       await _plugin.initialize(initSettings);
 
-      // Request notification permissions
-      await _plugin
-          .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin
-          >()
-          ?.requestNotificationsPermission();
+      final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+
+      // Request POST_NOTIFICATIONS permission (Android 13+)
+      await androidPlugin?.requestNotificationsPermission();
+
+      // Request exact alarm permission (Android 12+ / API 31+).
+      // Without this, notifications may be delayed up to 30+ minutes.
+      await androidPlugin?.requestExactAlarmsPermission();
 
       await _plugin
           .resolvePlatformSpecificImplementation<
-            IOSFlutterLocalNotificationsPlugin
-          >()
+              IOSFlutterLocalNotificationsPlugin>()
           ?.requestPermissions(alert: true, badge: true, sound: true);
     } catch (e) {
-      print(e);
+      log('ReminderService init error: $e');
     }
 
     await _loadFromStorage();
@@ -82,6 +88,7 @@ class ReminderService {
     required int hour,
     required int minute,
     bool repeatDaily = true,
+    String? familyMemberId,
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch;
 
@@ -93,11 +100,13 @@ class ReminderService {
       repeatDaily: repeatDaily,
       enabled: true,
       createdAt: now,
+      familyMemberId: familyMemberId,
     );
 
     _reminders.add(reminder);
     await _saveToStorage();
     await _schedule(reminder);
+    _changesController.add(null);
 
     return reminder;
   }
@@ -106,6 +115,7 @@ class ReminderService {
     _reminders.removeWhere((r) => r.id == reminder.id);
     await _saveToStorage();
     await _cancel(reminder);
+    _changesController.add(null);
   }
 
   Future<void> toggleEnabled(MedicineReminder reminder, bool enabled) async {
@@ -121,6 +131,37 @@ class ReminderService {
     } else {
       await _cancel(updated);
     }
+    _changesController.add(null);
+  }
+
+  Future<void> editReminder(
+    MedicineReminder original, {
+    required String medicineName,
+    required int hour,
+    required int minute,
+    required bool repeatDaily,
+  }) async {
+    final index = _reminders.indexWhere((r) => r.id == original.id);
+    if (index == -1) return;
+
+    // Cancel the old notification before rescheduling
+    await _cancel(original);
+
+    final updated = original.copyWith(
+      medicineName: medicineName,
+      hour: hour,
+      minute: minute,
+      repeatDaily: repeatDaily,
+    );
+
+    _reminders[index] = updated;
+    await _saveToStorage();
+
+    if (updated.enabled) {
+      await _schedule(updated);
+    }
+
+    _changesController.add(null);
   }
 
   // ------------------------------------------------
@@ -160,9 +201,14 @@ class ReminderService {
       const androidDetails = AndroidNotificationDetails(
         'medicine_reminders',
         'Medicine Reminders',
-        channelDescription: 'Reminders to check your medicines',
-        priority: Priority.high,
+        channelDescription: 'Daily reminders to take your medicines on time',
+        priority: Priority.max,
         importance: Importance.max,
+        playSound: true,
+        enableVibration: true,
+        enableLights: true,
+        category: AndroidNotificationCategory.alarm,
+        visibility: NotificationVisibility.public,
       );
 
       const iosDetails = DarwinNotificationDetails(
@@ -171,7 +217,7 @@ class ReminderService {
         presentSound: true,
       );
 
-      final details = const NotificationDetails(
+      const details = NotificationDetails(
         android: androidDetails,
         iOS: iosDetails,
       );
@@ -191,21 +237,37 @@ class ReminderService {
         scheduled = scheduled.add(const Duration(days: 1));
       }
 
-      await _plugin.zonedSchedule(
-        id,
-        "Medicine Reminder",
-        "Time to check: ${reminder.medicineName}",
-        // tz.TZDateTime.now(tz.local).add(const Duration(seconds: 5)),
-        scheduled,
-        details,
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-        payload: reminder.id,
-        matchDateTimeComponents: reminder.repeatDaily
-            ? DateTimeComponents.time
-            : null,
-      );
+      // Try exact alarm first (most reliable). Falls back to inexact if the
+      // exact-alarm permission has not been granted on Android 12+.
+      try {
+        await _plugin.zonedSchedule(
+          id,
+          'Medicine Reminder 💊',
+          'Time to take: ${reminder.medicineName}',
+          scheduled,
+          details,
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          payload: reminder.id,
+          matchDateTimeComponents: reminder.repeatDaily
+              ? DateTimeComponents.time
+              : null,
+        );
+      } catch (_) {
+        await _plugin.zonedSchedule(
+          id,
+          'Medicine Reminder 💊',
+          'Time to take: ${reminder.medicineName}',
+          scheduled,
+          details,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          payload: reminder.id,
+          matchDateTimeComponents: reminder.repeatDaily
+              ? DateTimeComponents.time
+              : null,
+        );
+      }
     } catch (e) {
-      print(e);
+      log('❌ Failed to schedule notification: $e');
     }
   }
 
@@ -251,7 +313,7 @@ class ReminderService {
     try {
       await _plugin.show(id, title, body, details, payload: payload);
     } catch (e) {
-      print("Error showing remote notification: $e");
+      log('Error showing remote notification: $e');
     }
   }
 }

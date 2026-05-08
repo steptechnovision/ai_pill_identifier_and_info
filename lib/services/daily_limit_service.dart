@@ -1,0 +1,55 @@
+import '../helper/constant.dart';
+import '../helper/prefs.dart';
+import '../services/subscription_service.dart';
+
+enum ApiFeature { search, interaction }
+
+class DailyLimitService {
+  DailyLimitService._();
+  static final DailyLimitService instance = DailyLimitService._();
+
+  bool isLimitReached(ApiFeature feature) {
+    return getUsed(feature) >= getLimit(feature);
+  }
+
+  int getLimit(ApiFeature feature) {
+    final isPro = SubscriptionService.instance.isPro;
+    switch (feature) {
+      case ApiFeature.search:
+        return isPro ? Constants.proDailySearchLimit : Constants.freeDailySearchLimit;
+      case ApiFeature.interaction:
+        return isPro ? Constants.proDailyInteractionLimit : Constants.freeDailyInteractionLimit;
+    }
+  }
+
+  int getUsed(ApiFeature feature) {
+    switch (feature) {
+      case ApiFeature.search:
+        return Prefs.getDailyCount();
+      case ApiFeature.interaction:
+        return Prefs.getDailyInteractionCount();
+    }
+  }
+
+  int remaining(ApiFeature feature) {
+    final limit = getLimit(feature);
+    return (limit - getUsed(feature)).clamp(0, limit);
+  }
+
+  Future<void> record(ApiFeature feature) {
+    switch (feature) {
+      case ApiFeature.search:
+        return Prefs.incrementDailyCount();
+      case ApiFeature.interaction:
+        return Prefs.incrementDailyInteractionCount();
+    }
+  }
+
+  // Legacy helpers kept for existing call sites
+  Future<void> recordSearch() => record(ApiFeature.search);
+  int remainingToday() => remaining(ApiFeature.search);
+  int usedToday() => getUsed(ApiFeature.search);
+
+  // Called after the user watches a rewarded ad — grants +1 bonus search.
+  Future<void> grantRewardedBonus() => Prefs.addBonusDailySearch();
+}

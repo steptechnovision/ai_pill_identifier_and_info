@@ -1,9 +1,12 @@
 import 'package:ai_medicine_tracker/helper/constant.dart';
 import 'package:ai_medicine_tracker/helper/prefs.dart';
 import 'package:ai_medicine_tracker/screens/splash_screen.dart';
+import 'package:ai_medicine_tracker/services/adherence_service.dart';
+import 'package:ai_medicine_tracker/services/admob_service.dart';
 import 'package:ai_medicine_tracker/services/firebase_service.dart';
 import 'package:ai_medicine_tracker/services/reminder_service.dart';
 import 'package:ai_medicine_tracker/services/remote_config_service.dart';
+import 'package:ai_medicine_tracker/services/subscription_service.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -16,13 +19,15 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
   await Prefs.initialize();
-  // 🔔 Initialize reminders
+
   await ReminderService.instance.init();
-
-  // 1. Initialize Firebase & Crashlytics
+  await AdherenceService.instance.init();
   await FirebaseService.init();
-
   await RemoteConfigService.init();
+
+  // Init monetization services
+  await SubscriptionService.instance.init();
+  await AdmobService.instance.init();
 
   runApp(const MedicineApp());
 }

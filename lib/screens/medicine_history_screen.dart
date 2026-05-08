@@ -2,10 +2,10 @@ import 'package:ai_medicine_tracker/helper/app_assets.dart';
 import 'package:ai_medicine_tracker/helper/app_colors.dart';
 import 'package:ai_medicine_tracker/helper/utils.dart';
 import 'package:ai_medicine_tracker/repository/medicine_repository.dart';
-import 'package:ai_medicine_tracker/widgets/app_bar_title_view.dart';
 import 'package:ai_medicine_tracker/widgets/app_text.dart';
 import 'package:ai_medicine_tracker/widgets/collapsible_card.dart';
 import 'package:ai_medicine_tracker/widgets/custom_text_field.dart';
+import 'package:ai_medicine_tracker/widgets/native_ad_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -17,16 +17,12 @@ class MedicineHistoryScreen extends StatefulWidget {
 }
 
 class _MedicineHistoryScreenState extends State<MedicineHistoryScreen> {
-  // ---------------------------------------------------------------------------
-  // LOGIC (UNTOUCHED)
-  // ---------------------------------------------------------------------------
   final MedicineRepository repo = MedicineRepository();
   final TextEditingController _searchController = TextEditingController();
 
   bool _isLoading = true;
   List<MedicineItem> _history = [];
   List<MedicineItem> _filteredHistory = [];
-
   MedicineItem? _selectedItem;
 
   @override
@@ -35,16 +31,23 @@ class _MedicineHistoryScreenState extends State<MedicineHistoryScreen> {
     _loadHistory();
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadHistory() async {
     await repo.ensureLoaded();
     final all = repo.getAllCachedItems();
-
-    // Latest first
     all.sort((a, b) => b.lastUsedAt.compareTo(a.lastUsedAt));
-    _history = all;
-    _filteredHistory = all;
-
-    setState(() => _isLoading = false);
+    if (mounted) {
+      setState(() {
+        _history = all;
+        _filteredHistory = all;
+        _isLoading = false;
+      });
+    }
   }
 
   void _searchHistory(String query) {
@@ -59,140 +62,247 @@ class _MedicineHistoryScreenState extends State<MedicineHistoryScreen> {
   String _groupTitle(int timestamp) {
     final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
     final now = DateTime.now();
-
     if (date.year == now.year &&
         date.month == now.month &&
         date.day == now.day) {
-      return "Today";
+      return 'Today';
     }
-    if (now.difference(date).inDays <= 7) {
-      return "This Week";
-    }
-    return "Earlier";
+    if (now.difference(date).inDays <= 7) return 'This Week';
+    return 'Earlier';
+  }
+
+  String _relativeDate(int timestamp) {
+    final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    final now = DateTime.now();
+    final diff = now.difference(date);
+
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays == 1) return 'Yesterday';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return '${date.day}/${date.month}/${date.year}';
   }
 
   Future<void> _deleteFromHistory(MedicineItem item) async {
     await repo.deleteMedicine(item.canonicalName);
-
     setState(() {
       _history.remove(item);
       _filteredHistory.remove(item);
       if (_selectedItem == item) _selectedItem = null;
     });
-
-    Utils.showToast(context, message: "Removed from history 🗑");
+    if (mounted) Utils.showToast(context, message: 'Removed from history');
   }
 
   Future<bool> _confirmDelete(MedicineItem item) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF1E1E1E),
-          // Dark Theme Surface
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A1A),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
           ),
-          title: AppText(
-            "Remove from History?",
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-          content: AppText(
-            "Are you sure you want to delete '${item.originalName}'? This action cannot be undone.",
-            color: Colors.white70,
-            maxLines: 20,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false), // Cancel
-              child: AppText("Cancel", color: Colors.white54),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true), // Confirm
-              child: const AppText(
-                "Delete",
-                color: Colors.redAccent,
-                fontWeight: FontWeight.bold,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.delete_outline_rounded,
+                    color: Colors.redAccent, size: 26),
               ),
-            ),
-          ],
-        );
-      },
+              16.verticalSpace,
+              AppText('Remove from History?',
+                  fontSize: 17.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white),
+              10.verticalSpace,
+              AppText(
+                '"${item.originalName}" will be permanently removed.',
+                fontSize: 13.sp,
+                color: Colors.white54,
+                textAlign: TextAlign.center,
+                maxLines: 3,
+              ),
+              20.verticalSpace,
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.15)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: AppText('Cancel',
+                          fontSize: 14.sp, color: Colors.white54),
+                    ),
+                  ),
+                  12.horizontalSpace,
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: AppText('Remove',
+                          fontSize: 14.sp, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
     return confirmed ?? false;
   }
 
-  // ---------------------------------------------------------------------------
-  // IMPROVED UI BUILD
-  // ---------------------------------------------------------------------------
+  // ── Build ──────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
       canPop: _selectedItem == null,
-      onPopInvokedWithResult: (didPop, result) {
+      onPopInvokedWithResult: (didPop, _) {
         if (!didPop && _selectedItem != null) {
           setState(() => _selectedItem = null);
         }
       },
       child: Scaffold(
-        backgroundColor: UIConstants.darkBackgroundStart,
-        appBar: AppBar(
-          backgroundColor: UIConstants.darkBackgroundStart,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+        backgroundColor: const Color(0xFF0A0A0A),
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              stops: [0.0, 0.28, 1.0],
+              colors: [
+                Color(0xFF071209),
+                Color(0xFF121212),
+                Color(0xFF1A1A1A),
+              ],
+            ),
+          ),
+          child: SafeArea(
+            child: Column(
+              children: [
+                _buildHeader(),
+                Expanded(
+                  child: _isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                              color: UIConstants.accentGreen, strokeWidth: 2),
+                        )
+                      : _selectedItem == null
+                          ? _buildHistoryList()
+                          : _buildDetailView(_selectedItem!),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Header ────────────────────────────────────────────
+
+  Widget _buildHeader() {
+    final isDetail = _selectedItem != null;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(4.w, 4.h, 20.w, 0),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                color: Colors.white54, size: 20),
             onPressed: () {
-              if (_selectedItem != null) {
+              if (isDetail) {
                 setState(() => _selectedItem = null);
               } else {
                 Navigator.pop(context);
               }
             },
           ),
-          title: AppBarTitleView(
-            title: _selectedItem == null ? "History" : "Details",
-          ),
-        ),
-        body: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(
-                  color: UIConstants.accentGreen,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AppText(
+                  isDetail ? _selectedItem!.originalName : 'Search History',
+                  fontSize: isDetail ? 16.sp : 19.sp,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  maxLines: 1,
                 ),
-              )
-            : _selectedItem == null
-            ? _buildHistoryList()
-            : _buildDetails(_selectedItem!),
+                if (!isDetail)
+                  AppText(
+                    '${_history.length} medicine${_history.length == 1 ? '' : 's'} saved',
+                    fontSize: 11.sp,
+                    color: Colors.white38,
+                  ),
+                if (isDetail)
+                  AppText(
+                    'Saved in history',
+                    fontSize: 11.sp,
+                    color: Colors.white38,
+                  ),
+              ],
+            ),
+          ),
+          if (isDetail)
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: UIConstants.accentGreen.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.auto_awesome_rounded,
+                      size: 10, color: UIConstants.accentGreen),
+                  4.horizontalSpace,
+                  AppText('AI Analysis',
+                      fontSize: 10.sp,
+                      color: UIConstants.accentGreen,
+                      fontWeight: FontWeight.w600),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }
 
-  // 📌 LIST VIEW
+  // ── History list ──────────────────────────────────────
+
   Widget _buildHistoryList() {
-    if (_history.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.history_toggle_off_rounded,
-              size: 48,
-              color: Colors.white.withValues(alpha: 0.2),
-            ),
-            const SizedBox(height: 16),
-            const AppText("No history found.", color: Colors.white38),
-          ],
-        ),
-      );
-    }
+    if (_history.isEmpty) return _buildEmptyState();
 
     return Column(
       children: [
-        // 🔍 Search bar (Compact)
+        // Search bar
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+          padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 0),
           child: CustomTextField(
-            hintText: "Search history…",
+            hintText: 'Search history…',
             prefixIcon: AppAssets.icSearch,
             controller: _searchController,
             showDividerOnSuffixIcon: false,
@@ -201,86 +311,144 @@ class _MedicineHistoryScreenState extends State<MedicineHistoryScreen> {
             showCancelButton: true,
           ),
         ),
-
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.only(bottom: 20),
-            itemCount: _filteredHistory.length,
-            itemBuilder: (_, index) {
-              final item = _filteredHistory[index];
-              final title = _groupTitle(item.lastUsedAt);
-
-              final showHeader =
-                  index == 0 ||
-                  title != _groupTitle(_filteredHistory[index - 1].lastUsedAt);
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        if (_filteredHistory.isEmpty)
+          Expanded(
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (showHeader)
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(10.w, 12.h, 8.w, 4.h),
-                      child: AppText(
-                        title.toUpperCase(),
-                        color: Colors.white.withValues(alpha: 0.4),
-                        fontSize: 11.sp,
-                        maxLines: 20,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-
-                  _buildHistoryCard(item),
+                  Icon(Icons.search_off_rounded,
+                      size: 40, color: Colors.white24),
+                  16.verticalSpace,
+                  AppText('No results found',
+                      fontSize: 15.sp, color: Colors.white38),
                 ],
-              );
-            },
+              ),
+            ),
+          )
+        else
+          Expanded(
+            child: ListView.builder(
+              padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 24.h),
+              itemCount: _filteredHistory.length,
+              itemBuilder: (_, index) {
+                final item = _filteredHistory[index];
+                final title = _groupTitle(item.lastUsedAt);
+                final showHeader = index == 0 ||
+                    title !=
+                        _groupTitle(_filteredHistory[index - 1].lastUsedAt);
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (showHeader) _buildGroupHeader(title),
+                    _buildHistoryCard(item),
+                    // Native ad every 5 items
+                    if ((index + 1) % 5 == 0) const NativeAdCard(),
+                  ],
+                );
+              },
+            ),
           ),
-        ),
       ],
     );
   }
 
-  // 📌 INDIVIDUAL CARD ITEM
+  // ── Empty state ───────────────────────────────────────
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [
+                  UIConstants.accentGreen.withValues(alpha: 0.12),
+                  UIConstants.accentGreen.withValues(alpha: 0.03),
+                ],
+              ),
+              border: Border.all(
+                  color: UIConstants.accentGreen.withValues(alpha: 0.18)),
+            ),
+            child: Icon(Icons.history_rounded,
+                size: 36,
+                color: UIConstants.accentGreen.withValues(alpha: 0.5)),
+          ),
+          24.verticalSpace,
+          AppText('No history yet',
+              fontSize: 19.sp,
+              fontWeight: FontWeight.w700,
+              color: Colors.white),
+          10.verticalSpace,
+          AppText(
+            'Medicines you search will appear\nhere for quick access.',
+            fontSize: 13.sp,
+            color: Colors.white38,
+            lineHeight: 1.6,
+            maxLines: 3,
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Group header ──────────────────────────────────────
+
+  Widget _buildGroupHeader(String title) {
+    return Padding(
+      padding: EdgeInsets.only(top: 16.h, bottom: 8.h),
+      child: Row(
+        children: [
+          AppText(
+            title.toUpperCase(),
+            fontSize: 11.sp,
+            fontWeight: FontWeight.w700,
+            color: Colors.white30,
+            letterSpacing: 1.0,
+          ),
+          12.horizontalSpace,
+          Expanded(
+            child: Container(
+              height: 1,
+              color: Colors.white.withValues(alpha: 0.06),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── History card ──────────────────────────────────────
+
   Widget _buildHistoryCard(MedicineItem item) {
     return Dismissible(
       key: ValueKey(item.canonicalName),
-      // Unique Key is required
       direction: DismissDirection.endToStart,
-      // Swipe right-to-left
-
-      // 1. CONFIRM BEFORE SWIPE
-      confirmDismiss: (direction) async {
-        return await _confirmDelete(item);
-      },
-
-      // 2. ACTION ON SWIPE COMPLETE
-      onDismissed: (direction) {
-        _deleteFromHistory(item);
-      },
-
-      // 3. RED BACKGROUND BEHIND CARD
+      confirmDismiss: (_) => _confirmDelete(item),
+      onDismissed: (_) => _deleteFromHistory(item),
       background: Container(
-        margin: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-        decoration: BoxDecoration(
-          color: Colors.redAccent.withValues(alpha: 0.2),
-          borderRadius: BorderRadius.circular(16),
-        ),
+        margin: EdgeInsets.only(bottom: 8.h),
         alignment: Alignment.centerRight,
-        padding: EdgeInsets.only(right: 20.w),
-        child: const Icon(
-          Icons.delete_outline,
-          color: Colors.redAccent,
-          size: 28,
-        ),
-      ),
-
-      // 4. ACTUAL CARD CONTENT
-      child: Container(
-        margin: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+        padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.04), // Soft Fill
+          color: Colors.red.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        ),
+        child: const Icon(Icons.delete_outline_rounded,
+            color: Colors.redAccent, size: 22),
+      ),
+      child: Container(
+        margin: EdgeInsets.only(bottom: 8.h),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1C1C1C),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
         ),
         child: Material(
           color: Colors.transparent,
@@ -288,63 +456,47 @@ class _MedicineHistoryScreenState extends State<MedicineHistoryScreen> {
             borderRadius: BorderRadius.circular(16),
             onTap: () => setState(() => _selectedItem = item),
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+              padding:
+                  EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
               child: Row(
                 children: [
-                  // Soft Icon Box
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(9),
                     decoration: BoxDecoration(
-                      color: UIConstants.accentGreen.withValues(alpha: 0.15),
+                      gradient: LinearGradient(
+                        colors: [
+                          UIConstants.accentGreen.withValues(alpha: 0.18),
+                          UIConstants.accentGreen.withValues(alpha: 0.05),
+                        ],
+                      ),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.medication_rounded,
-                      color: UIConstants.accentGreen,
-                      size: 20,
-                    ),
+                    child: const Icon(Icons.medication_rounded,
+                        color: UIConstants.accentGreen, size: 18),
                   ),
-                  SizedBox(width: 10.w),
-
-                  // Title
+                  12.horizontalSpace,
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         AppText(
                           item.originalName,
+                          fontSize: 14.sp,
                           fontWeight: FontWeight.w600,
-                          fontSize: 15.sp,
-                          maxLines: 20,
                           color: Colors.white,
+                          maxLines: 1,
                         ),
-                        SizedBox(height: 1.h),
+                        4.verticalSpace,
                         AppText(
-                          "Tap to view details",
-                          fontSize: 12.sp,
-                          color: Colors.white.withValues(alpha: 0.3),
+                          _relativeDate(item.lastUsedAt),
+                          fontSize: 11.sp,
+                          color: Colors.white38,
                         ),
                       ],
                     ),
                   ),
-
-                  // Delete Action (Subtle)
-                  IconButton(
-                    icon: Icon(
-                      Icons.delete_outline_rounded,
-                      color: Colors.white.withValues(alpha: 0.3),
-                      size: 20,
-                    ),
-                    visualDensity: VisualDensity.compact,
-                    tooltip: "Remove from history",
-                    // 5. CONFIRM BEFORE CLICK DELETE
-                    onPressed: () async {
-                      final confirm = await _confirmDelete(item);
-                      if (confirm) {
-                        _deleteFromHistory(item);
-                      }
-                    },
-                  ),
+                  Icon(Icons.chevron_right_rounded,
+                      color: Colors.white.withValues(alpha: 0.2), size: 18),
                 ],
               ),
             ),
@@ -354,90 +506,118 @@ class _MedicineHistoryScreenState extends State<MedicineHistoryScreen> {
     );
   }
 
-  // 📌 DETAILS VIEW (Consistent with Main Screen)
-  Widget _buildDetails(MedicineItem item) {
+  // ── Detail view ───────────────────────────────────────
+
+  Widget _buildDetailView(MedicineItem item) {
     final entries = item.sections.entries.toList();
+
+    // Build flat list: section cards + native ad every 4 items
+    final List<Widget> sectionWidgets = [];
+    for (int i = 0; i < entries.length; i++) {
+      final e = entries[i];
+      sectionWidgets.add(CollapsibleCard(
+        key: ValueKey(e.key),
+        title: e.key,
+        content: e.value,
+        initiallyExpanded: i < 2,
+        medicineName: item.originalName,
+      ));
+      if ((i + 1) % 4 == 0 && i < entries.length - 1) {
+        sectionWidgets.add(const NativeAdCard());
+      }
+    }
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 🔹 Same Header as Result View
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 10.h),
+          // Compact medicine header
+          Container(
+            margin: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1C1C1C),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                  color: UIConstants.accentGreen.withValues(alpha: 0.18)),
+            ),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: UIConstants.accentGreen.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [
+                        UIConstants.accentGreen.withValues(alpha: 0.2),
+                        UIConstants.accentGreen.withValues(alpha: 0.06),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(
-                    Icons.science_rounded,
-                    color: UIConstants.accentGreen,
-                    size: 24,
-                  ),
+                  child: const Icon(Icons.science_rounded,
+                      color: UIConstants.accentGreen, size: 17),
                 ),
-                SizedBox(width: 10.w),
+                10.horizontalSpace,
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       AppText(
                         item.originalName,
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w700,
                         color: Colors.white,
-                        fontSize: 20.sp,
-                        maxLines: 20,
-                        fontWeight: FontWeight.bold,
+                        maxLines: 1,
                       ),
-                      SizedBox(height: 6.h),
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 8.w,
-                          vertical: 3.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: AppText(
-                          "Saved in History",
-                          color: Colors.white70,
-                          fontSize: 11.sp,
-                          maxLines: 20,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      3.verticalSpace,
+                      Row(
+                        children: [
+                          const Icon(Icons.history_rounded,
+                              size: 9, color: Colors.white38),
+                          4.horizontalSpace,
+                          AppText(
+                            'Last viewed ${_relativeDate(item.lastUsedAt)}',
+                            fontSize: 10.sp,
+                            color: Colors.white38,
+                          ),
+                        ],
                       ),
                     ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () async {
+                    if (await _confirmDelete(item)) {
+                      _deleteFromHistory(item);
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.delete_outline_rounded,
+                        size: 15, color: Colors.redAccent),
                   ),
                 ),
               ],
             ),
           ),
-
-          const Divider(height: 1, color: Colors.white10),
-          const SizedBox(height: 10),
-
-          // 🔹 Collapsible Cards
-          ListView.separated(
-            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 5.h),
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: entries.length,
-            separatorBuilder: (c, i) => SizedBox(height: 8.h),
-            itemBuilder: (_, index) {
-              final e = entries[index];
-              return CollapsibleCard(
-                key: ValueKey(e.key),
-                title: e.key,
-                content: e.value,
-                initiallyExpanded: index < 2,
-                medicineName: item.originalName,
-              );
-            },
+          10.verticalSpace,
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            child: Column(
+              children: sectionWidgets
+                  .map((w) => Padding(
+                        padding: EdgeInsets.only(bottom: 6.h),
+                        child: w,
+                      ))
+                  .toList(),
+            ),
           ),
-          SizedBox(height: 10.h),
+          16.verticalSpace,
         ],
       ),
     );

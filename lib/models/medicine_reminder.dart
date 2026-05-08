@@ -6,6 +6,7 @@ class MedicineReminder {
   final bool repeatDaily;
   final bool enabled;
   final int createdAt; // timestamp (ms)
+  final String? familyMemberId; // null = "Me"
 
   MedicineReminder({
     required this.id,
@@ -15,6 +16,7 @@ class MedicineReminder {
     required this.repeatDaily,
     required this.enabled,
     required this.createdAt,
+    this.familyMemberId,
   });
 
   factory MedicineReminder.fromJson(Map<String, dynamic> json) {
@@ -26,6 +28,7 @@ class MedicineReminder {
       repeatDaily: json['repeatDaily'] as bool? ?? true,
       enabled: json['enabled'] as bool? ?? true,
       createdAt: json['createdAt'] as int? ?? 0,
+      familyMemberId: json['familyMemberId'] as String?,
     );
   }
 
@@ -38,6 +41,7 @@ class MedicineReminder {
       'repeatDaily': repeatDaily,
       'enabled': enabled,
       'createdAt': createdAt,
+      if (familyMemberId != null) 'familyMemberId': familyMemberId,
     };
   }
 
@@ -49,6 +53,7 @@ class MedicineReminder {
     bool? repeatDaily,
     bool? enabled,
     int? createdAt,
+    Object? familyMemberId = _sentinel,
   }) {
     return MedicineReminder(
       id: id ?? this.id,
@@ -58,8 +63,13 @@ class MedicineReminder {
       repeatDaily: repeatDaily ?? this.repeatDaily,
       enabled: enabled ?? this.enabled,
       createdAt: createdAt ?? this.createdAt,
+      familyMemberId: familyMemberId == _sentinel
+          ? this.familyMemberId
+          : familyMemberId as String?,
     );
   }
+
+  static const Object _sentinel = Object();
 
   // ✨ UPDATED: Converts 22:00 -> 10:00 PM
   String get timeLabel {

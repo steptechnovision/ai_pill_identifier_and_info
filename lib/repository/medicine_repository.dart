@@ -236,4 +236,29 @@ class MedicineRepository {
   bool cacheContains(String canonical) {
     return _cache.containsKey(canonical);
   }
+
+  /// Stores a camera-scan result into the search cache so future text searches
+  /// are free and the medicine appears in search history.
+  /// If the medicine is already cached this is a no-op.
+  Future<void> storeCameraResult(String name, Map<String, dynamic> json) async {
+    await _ensureLoaded();
+    final canonical = name.trim().toLowerCase();
+    if (canonical.isEmpty || canonical == 'unknown') return;
+    if (_cache.containsKey(canonical)) return; // already cached, don't overwrite
+    final sections = Map<String, dynamic>.from(json)..remove('medicineName');
+    final formatted = sections.map((key, value) {
+      if (value is List) return MapEntry(key, value.map((e) => '$e').toList());
+      if (value is String && value.isNotEmpty) return MapEntry(key, [value]);
+      return MapEntry(key, <String>[]);
+    });
+    final item = MedicineItem(
+      originalName: name.trim(),
+      canonicalName: canonical,
+      sections: formatted,
+      lastUsedAt: DateTime.now().millisecondsSinceEpoch,
+    );
+    _cache[canonical] = item;
+    await _saveCache();
+    log('📸 Camera scan result stored: $name');
+  }
 }

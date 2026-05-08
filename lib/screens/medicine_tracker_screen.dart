@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:developer';
 
 import 'package:ai_medicine_tracker/helper/app_assets.dart';
@@ -10,21 +9,19 @@ import 'package:ai_medicine_tracker/main.dart';
 import 'package:ai_medicine_tracker/repository/medicine_repository.dart';
 import 'package:ai_medicine_tracker/screens/add_reminder_screen.dart';
 import 'package:ai_medicine_tracker/screens/medicine_history_screen.dart';
-import 'package:ai_medicine_tracker/screens/reminders_screen.dart';
+import 'package:ai_medicine_tracker/screens/paywall_screen.dart';
 import 'package:ai_medicine_tracker/screens/token_purchase_screen.dart';
-import 'package:ai_medicine_tracker/screens/webview_page.dart';
-import 'package:ai_medicine_tracker/widgets/app_bar_title_view.dart';
+import 'package:ai_medicine_tracker/services/admob_service.dart';
+import 'package:ai_medicine_tracker/services/daily_limit_service.dart';
+import 'package:ai_medicine_tracker/services/subscription_service.dart';
 import 'package:ai_medicine_tracker/widgets/app_text.dart';
 import 'package:ai_medicine_tracker/widgets/collapsible_card.dart';
+import 'package:ai_medicine_tracker/widgets/native_ad_card.dart';
 import 'package:ai_medicine_tracker/widgets/custom_text_field.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:in_app_review/in_app_review.dart';
-import 'package:package_info_plus/package_info_plus.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class MedicineTrackerScreen extends StatefulWidget {
   const MedicineTrackerScreen({super.key});
@@ -36,7 +33,6 @@ class MedicineTrackerScreen extends StatefulWidget {
 class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
   final MedicineRepository repo = MedicineRepository();
   final TextEditingController _controller = TextEditingController();
-
   final ValueNotifier _isLoading = ValueNotifier<bool>(false);
 
   MedicineItem? _currentMedicine;
@@ -44,8 +40,6 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
   List<MedicineItem> _chipMedicines = [];
   List<MedicineItem> _filteredChips = [];
   bool _noMedicineFound = false;
-  int _tokens = 0;
-  String _appVersion = "Version ...";
 
   @override
   void initState() {
@@ -56,25 +50,14 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
   Future<void> _initLogic() async {
     await repo.ensureLoaded();
     await _loadRecentSearches();
-    _tokens = Prefs.getTokens();
     _combineMedicines();
     _filteredChips = _chipMedicines;
-    _loadAppVersion();
     setState(() {});
-  }
-
-  Future<void> _loadAppVersion() async {
-    final packageInfo = await PackageInfo.fromPlatform();
-    if (mounted) {
-      setState(() {
-        _appVersion = "Version ${packageInfo.version}";
-      });
-    }
   }
 
   Future<void> _loadRecentSearches() async {
     final prefs = await SharedPreferences.getInstance();
-    _recentCanonicals = prefs.getStringList("recent_canonicals") ?? [];
+    _recentCanonicals = prefs.getStringList('recent_canonicals') ?? [];
   }
 
   Future<void> _addToRecentSearches(String canonical) async {
@@ -84,76 +67,65 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
     if (_recentCanonicals.length > 50) {
       _recentCanonicals = _recentCanonicals.sublist(0, 50);
     }
-    await prefs.setStringList("recent_canonicals", _recentCanonicals);
+    await prefs.setStringList('recent_canonicals', _recentCanonicals);
   }
 
   void _combineMedicines({bool resetFilter = false}) {
     final all = repo.getAllCachedItems();
     all.sort((a, b) => b.lastUsedAt.compareTo(a.lastUsedAt));
     _chipMedicines = all;
-
-    if (resetFilter) {
+    final query = _controller.text.trim().toLowerCase();
+    if (resetFilter || query.isEmpty) {
       _filteredChips = _chipMedicines;
     } else {
-      final query = _controller.text.trim().toLowerCase();
-      if (query.isEmpty) {
-        _filteredChips = _chipMedicines;
-      } else {
-        _filteredChips = _chipMedicines
-            .where((item) => item.originalName.toLowerCase().contains(query))
-            .toList();
-      }
+      _filteredChips = _chipMedicines
+          .where((item) => item.originalName.toLowerCase().contains(query))
+          .toList();
     }
     setState(() {});
   }
 
   void _onSearchTextChanged(String value) {
     final query = value.trim().toLowerCase();
-    if (query.isEmpty) {
-      setState(() {
-        _filteredChips = _chipMedicines;
-      });
-      return;
-    }
     setState(() {
-      _filteredChips = _chipMedicines
-          .where((item) => item.originalName.toLowerCase().contains(query))
-          .toList();
+      _filteredChips = query.isEmpty
+          ? _chipMedicines
+          : _chipMedicines
+              .where((item) => item.originalName.toLowerCase().contains(query))
+              .toList();
     });
   }
 
   Future<void> _searchMedicine() async {
     final name = _controller.text.trim();
     if (name.isEmpty) {
-      Utils.showMessage(
-        context,
-        "Enter medicine name to search",
-        isError: true,
-      );
+      Utils.showMessage(context, 'Enter medicine name to search', isError: true);
       return;
     }
-    _isLoading.value = true;
-    // ⚠️ Check token only if API will be used
+
     final isCacheHit = repo.cacheContains(name.toLowerCase());
+    final isPro = SubscriptionService.instance.isPro;
+    final tokens = Prefs.getTokens();
 
     if (!isCacheHit) {
-      // 🌐 Internet check
       final online = await Utils.checkInternetWithLoading();
       if (!online) {
         _isLoading.value = false;
-        Utils.showMessage(
-          context,
-          "No internet connection. Please check your network.",
-          isError: true,
-        );
+        if (!mounted) return;
+        Utils.showMessage(context, 'No internet connection.', isError: true);
         return;
       }
 
-      // requires 1 token
-      if (Prefs.getTokens() <= 0) {
-        _isLoading.value = false;
-        _showNoTokenDialog();
-        return;
+      if (isPro) {
+        if (DailyLimitService.instance.isLimitReached(ApiFeature.search)) {
+          _showProLimitReachedDialog(ApiFeature.search);
+          return;
+        }
+      } else if (tokens <= 0) {
+        if (DailyLimitService.instance.isLimitReached(ApiFeature.search)) {
+          _showLimitReachedDialog();
+          return;
+        }
       }
     }
 
@@ -166,137 +138,166 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
     try {
       final medicine = await repo.fetchMedicine(name);
       _currentMedicine = medicine;
+
+      if (!mounted) return;
       if (medicine.fromCache) {
         Utils.showNoTokenUsed(context);
-      } else {
-        await Prefs.deductToken(); // 🔥 reduce 1
-        _tokens = Prefs.getTokens();
+      } else if (isPro) {
+        await DailyLimitService.instance.record(ApiFeature.search);
+        if (!mounted) return;
+        setState(() {});
+        Utils.showNoTokenUsed(context);
+      } else if (tokens > 0) {
+        await Prefs.deductToken();
+        if (!mounted) return;
         setState(() {});
         Utils.showTokenUsed(context);
+      } else {
+        await DailyLimitService.instance.record(ApiFeature.search);
+        if (!mounted) return;
+        setState(() {});
+        Utils.showNoTokenUsed(context);
       }
+
       await _addToRecentSearches(medicine.canonicalName);
+      if (!medicine.fromCache) {
+        AdmobService.instance.onNewSearch();
+      }
     } catch (e, st) {
-      log("❌ Error: $e\n$st");
-      await Prefs.deductToken(); // 🔥 reduce 1
-      _tokens = Prefs.getTokens();
+      log('❌ Error: $e\n$st');
+      if (!isCacheHit && isPro) {
+        await DailyLimitService.instance.record(ApiFeature.search);
+      } else if (!isCacheHit && tokens > 0) {
+        await Prefs.deductToken();
+      } else if (!isCacheHit) {
+        await DailyLimitService.instance.record(ApiFeature.search);
+      }
+      if (!mounted) return;
       setState(() {
         _noMedicineFound = true;
         _currentMedicine = null;
       });
     } finally {
-      setState(() {
-        _isLoading.value = false;
-      });
+      _isLoading.value = false;
     }
   }
 
-  void _showNoTokenDialog() {
+  void _showLimitReachedDialog() {
     showDialog(
       context: context,
-      builder: (context) => Dialog(
+      builder: (ctx) => Dialog(
         backgroundColor: Colors.transparent,
-        // Allows custom container shape
         insetPadding: const EdgeInsets.symmetric(horizontal: 24),
         child: Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: const Color(0xFF1E1E1E),
-            // Match your dark theme surface
+            color: const Color(0xFF1A1A1A),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.5),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
+                color: Colors.black.withValues(alpha: 0.6),
+                blurRadius: 40,
+                spreadRadius: 0,
               ),
             ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 1. Glowing Icon
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.amber.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
+                  border: Border.all(color: Colors.amber.withValues(alpha: 0.2)),
                 ),
-                child: const Icon(
-                  Icons.stars_rounded,
-                  size: 40,
-                  color: Colors.amber,
-                ),
+                child: const Icon(Icons.lock_clock_rounded, size: 36, color: Colors.amber),
               ),
-
               20.verticalSpace,
-
-              // 2. Title
               AppText(
-                "Out of Search Credits",
+                'Daily Limit Reached',
                 textAlign: TextAlign.center,
                 color: Colors.white,
                 fontSize: 20.sp,
-                maxLines: 5,
                 fontWeight: FontWeight.bold,
               ),
-
               12.verticalSpace,
-
-              // 3. Persuasive Text
               AppText(
-                "To analyze a new medicine, you need 1 credit.\n\nTop up your balance to unlock instant AI medical insights.",
+                'You\'ve used all ${Constants.freeDailySearchLimit} free searches for today.\nCome back tomorrow or unlock more now.',
                 textAlign: TextAlign.center,
-                color: Colors.white.withValues(alpha: 0.7),
-                fontSize: 14,
-                lineHeight: 1.5,
-                maxLines: 20,
+                color: Colors.white54,
+                fontSize: 13.sp,
+                lineHeight: 1.55,
+                maxLines: 5,
               ),
-
-              28.verticalSpace,
-
-              // 4. Action Buttons
-              Row(
-                children: [
-                  // Cancel Button
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        foregroundColor: Colors.white54,
-                      ),
-                      child: const AppText("Not now"),
+              24.verticalSpace,
+              if (AdmobService.instance.isReady) ...[
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      Navigator.pop(ctx);
+                      final earned = await AdmobService.instance.showRewarded();
+                      if (earned) {
+                        await DailyLimitService.instance.grantRewardedBonus();
+                        if (mounted) {
+                          setState(() {});
+                          Utils.showMessage(context, '+1 bonus search unlocked!', success: true);
+                        }
+                      }
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.amber,
+                      side: const BorderSide(color: Colors.amber),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
+                    icon: const Icon(Icons.play_circle_outline_rounded, color: Colors.amber, size: 20),
+                    label: AppText('Watch Ad for +1 Search', color: Colors.amber, fontSize: 14.sp),
                   ),
-
-                  const SizedBox(width: 12),
-
-                  // Buy Button (Prominent)
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context); // Close dialog
-                        _openPurchaseScreen();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: UIConstants.accentGreen,
-                        // Use your Green
-                        foregroundColor: Colors.black,
-                        // Dark text on Green
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const AppText(
-                        "Get Credits",
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                ),
+                10.verticalSpace,
+              ],
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const PaywallScreen()));
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: UIConstants.accentGreen,
+                    foregroundColor: Colors.black,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
-                ],
+                  icon: const Icon(Icons.stars_rounded, size: 18),
+                  label: AppText('Upgrade to Pro', fontSize: 14.sp, fontWeight: FontWeight.bold),
+                ),
+              ),
+              10.verticalSpace,
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: OutlinedButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _openPurchaseScreen();
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white54,
+                    side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: AppText('Buy Credits', fontSize: 14.sp),
+                ),
+              ),
+              10.verticalSpace,
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: AppText('Maybe later', fontSize: 12.sp, color: Colors.white38),
               ),
             ],
           ),
@@ -305,48 +306,66 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
     );
   }
 
-  Widget buildNoMedicineFound() {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 10.h),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFF5252).withValues(alpha: 0.08),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: const Color(0xFFFF5252).withValues(alpha: 0.1),
-                  width: 1,
+  void _showProLimitReachedDialog(ApiFeature feature) {
+    final limit = DailyLimitService.instance.getLimit(feature);
+    final label = feature == ApiFeature.search ? 'searches' : 'interaction checks';
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A1A),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blueAccent.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.2)),
+                ),
+                child: const Icon(Icons.lock_clock_rounded, size: 36, color: Colors.blueAccent),
+              ),
+              20.verticalSpace,
+              AppText(
+                'Daily Limit Reached',
+                textAlign: TextAlign.center,
+                color: Colors.white,
+                fontSize: 20.sp,
+                fontWeight: FontWeight.bold,
+              ),
+              12.verticalSpace,
+              AppText(
+                'You\'ve used all $limit $label for today.\nThis resets at midnight.',
+                textAlign: TextAlign.center,
+                color: Colors.white54,
+                fontSize: 13.sp,
+                lineHeight: 1.55,
+                maxLines: 5,
+              ),
+              24.verticalSpace,
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: UIConstants.accentGreen,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: AppText('Got it', fontSize: 14.sp, fontWeight: FontWeight.bold),
                 ),
               ),
-              child: Icon(
-                Icons.search_off_rounded,
-                size: 34,
-                color: const Color(0xFFFF5252).withValues(alpha: 0.8),
-              ),
-            ),
-            SizedBox(height: 10.h),
-            AppText(
-              "No matching medicine",
-              color: Colors.white,
-              fontSize: 18.sp,
-              maxLines: 5,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
-            ),
-            SizedBox(height: 8.h),
-            AppText(
-              "We couldn't find any medicine matching your search. Try a different keyword.",
-              textAlign: TextAlign.center,
-              color: Colors.white.withValues(alpha: 0.5),
-              fontSize: 14.sp,
-              maxLines: 20,
-              lineHeight: 1.5, // Improves readability
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -356,340 +375,300 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
     final canonical = originalName.toLowerCase();
     final prefs = await SharedPreferences.getInstance();
     _recentCanonicals.removeWhere((e) => e == canonical);
-    await prefs.setStringList("recent_canonicals", _recentCanonicals);
+    await prefs.setStringList('recent_canonicals', _recentCanonicals);
     await repo.deleteMedicine(canonical);
     _combineMedicines();
   }
 
-  // ---------------------------------------------------------------------------
-  // IMPROVED UI BUILD METHOD
-  // ---------------------------------------------------------------------------
+  void _openPurchaseScreen() async {
+    final online = await Utils.checkInternetWithLoading();
+    if (!online) {
+      if (!mounted) return;
+      Utils.showMessage(context, 'No internet connection.', isError: true);
+      return;
+    }
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const PurchaseTokenScreen()),
+    ).then((_) => setState(() {}));
+  }
+
+  // ── Build ──────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
-    // Using a SafeArea + Gradient Background for a premium feel
+    final isPro = SubscriptionService.instance.isPro;
+    final tokens = Prefs.getTokens();
+
     return Scaffold(
-      extendBodyBehindAppBar: false,
-      backgroundColor: UIConstants.darkBackgroundStart,
-      drawer: _buildDrawer(),
-      appBar: AppBar(
-        backgroundColor: UIConstants.darkBackgroundStart,
-        elevation: 0,
-        leading: Builder(
-          builder: (context) {
-            return IconButton(
-              icon: const Icon(
-                Icons.menu_rounded,
-                color: Colors.white,
-                size: 22,
-              ),
-              tooltip: "Menu",
-              splashRadius: 20,
-              onPressed: () => Scaffold.of(context).openDrawer(),
-            );
-          },
-        ),
-        title: AppBarTitleView(title: Constants.appName),
-        actions: [
-          // if (!isForScreenShots)
-          //   Padding(
-          //     padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-          //     child: InkWell(
-          //       onTap: () {
-          //         _openPurchaseScreen();
-          //       },
-          //       borderRadius: BorderRadius.circular(20),
-          //       child: Container(
-          //         padding: const EdgeInsets.fromLTRB(10, 4, 8, 4),
-          //         decoration: BoxDecoration(
-          //           color: const Color(0xFFFFD700).withOpacity(0.15),
-          //           // Soft Gold BG
-          //           borderRadius: BorderRadius.circular(50),
-          //           border: Border.all(
-          //             color: const Color(0xFFFFD700).withOpacity(0.3),
-          //             width: 1,
-          //           ),
-          //         ),
-          //         child: Row(
-          //           mainAxisSize: MainAxisSize.min,
-          //           children: [
-          //             // Icon
-          //             const Icon(
-          //               Icons.stars_rounded,
-          //               color: Color(0xFFFFD700), // Gold
-          //               size: 18,
-          //             ),
-          //             const SizedBox(width: 6),
-          //
-          //             // Count
-          //             AppText(
-          //               "$_tokens",
-          //               fontSize: 14.sp,
-          //               maxLines: 20,
-          //               color: Colors.white,
-          //               fontWeight: FontWeight.bold,
-          //             ),
-          //
-          //             const SizedBox(width: 6),
-          //
-          //             // Small Plus Icon (Call to Action)
-          //             Container(
-          //               padding: const EdgeInsets.all(2),
-          //               decoration: BoxDecoration(
-          //                 color: Colors.black.withOpacity(0.3),
-          //                 shape: BoxShape.circle,
-          //               ),
-          //               child: const Icon(
-          //                 Icons.add,
-          //                 size: 10,
-          //                 color: Colors.white,
-          //               ),
-          //             ),
-          //           ],
-          //         ),
-          //       ),
-          //     ),
-          //   ),
-          IconButton(
-            icon: const Icon(Icons.alarm, color: Colors.white),
-            tooltip: 'Reminders',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const RemindersScreen()),
-              );
-            },
-          ),
-        ],
-      ),
+      backgroundColor: const Color(0xFF0A0A0A),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
+            stops: [0.0, 0.28, 1.0],
             colors: [
-              UIConstants.darkBackgroundStart,
-              UIConstants.darkBackgroundEnd,
+              Color(0xFF071209),
+              Color(0xFF121212),
+              Color(0xFF1A1A1A),
             ],
           ),
         ),
-        child: Column(
-          children: [
-            // 1. TOP INFO SECTION (Scrollable if height is small)
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Column(
-                  children: [
-                    if (!isForScreenShots) _buildPurchaseButton(),
-                    if (!isForScreenShots) _buildInfoBanner(),
-                    6.verticalSpace,
-                    _buildSearchBar(),
-                    6.verticalSpace,
-                    _buildMedicineChips(),
-                    ValueListenableBuilder(
-                      valueListenable: _isLoading,
-                      builder: (context, value, child) {
-                        return value
-                            ? const Padding(
-                                padding: EdgeInsets.all(30),
-                                child: Center(
-                                  child: CircularProgressIndicator(
-                                    color: UIConstants.accentGreen,
-                                  ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              if (!isForScreenShots) _buildHeader(isPro, tokens),
+              _buildSearchBar(isPro, tokens),
+              if (!isForScreenShots) _buildBanner(isPro, tokens),
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    children: [
+                      _buildMedicineChips(),
+                      ValueListenableBuilder(
+                        valueListenable: _isLoading,
+                        builder: (_, value, __) => value
+                            ? Padding(
+                                padding: EdgeInsets.symmetric(vertical: 56.h),
+                                child: Column(
+                                  children: [
+                                    const SizedBox(
+                                      width: 36,
+                                      height: 36,
+                                      child: CircularProgressIndicator(
+                                        color: UIConstants.accentGreen,
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                    16.verticalSpace,
+                                    AppText(
+                                      'Analyzing medicine...',
+                                      fontSize: 13.sp,
+                                      color: Colors.white38,
+                                    ),
+                                  ],
                                 ),
                               )
-                            : Container();
-                      },
-                    ),
-                    // If we have results, they take over the space below
-                    // if (_currentMedicine != null) _buildResultView(),
-                    if (_noMedicineFound)
-                      buildNoMedicineFound()
-                    else if (_currentMedicine != null)
-                      _buildResultView(),
-                  ],
+                            : const SizedBox.shrink(),
+                      ),
+                      if (_noMedicineFound)
+                        buildNoMedicineFound()
+                      else if (_currentMedicine != null)
+                        _buildResultView()
+                      else if (_filteredChips.isEmpty)
+                        _buildEmptyState(),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-      bottomNavigationBar: _buildBottomBar(),
+      bottomNavigationBar: _buildHistoryBar(),
     );
   }
 
-  Widget _buildDrawer() {
-    return Drawer(
-      backgroundColor: UIConstants.darkBackgroundStart,
-      child: Column(
+  // ── Header ────────────────────────────────────────────
+
+  Widget _buildHeader(bool isPro, int tokens) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20.w, 12.h, 16.w, 0),
+      child: Row(
         children: [
-          // 1. HEADER
           Container(
-            width: double.infinity,
-            padding: EdgeInsets.fromLTRB(20.w, 60.h, 20.w, 20.h),
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
+              shape: BoxShape.circle,
               gradient: LinearGradient(
                 colors: [
                   UIConstants.accentGreen.withValues(alpha: 0.2),
-                  UIConstants.darkBackgroundStart,
+                  UIConstants.accentGreen.withValues(alpha: 0.05),
                 ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
               ),
-              border: Border(
-                bottom: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
-              ),
+              border: Border.all(
+                  color: UIConstants.accentGreen.withValues(alpha: 0.35)),
             ),
+            child: Center(
+              child: Image.asset(AppAssets.appIcon, width: 20, height: 20),
+            ),
+          ),
+          12.horizontalSpace,
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Logo Placeholder
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withValues(alpha: 0.05),
-                    border: Border.all(
-                      color: UIConstants.accentGreen.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.medication_liquid_rounded,
-                    size: 32,
-                    color: UIConstants.accentGreen,
+                ShaderMask(
+                  shaderCallback: (b) => const LinearGradient(
+                    colors: [Colors.white, Color(0xFF9EFFC4)],
+                  ).createShader(b),
+                  blendMode: BlendMode.srcIn,
+                  child: AppText(
+                    Constants.appName,
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    maxLines: 1,
                   ),
                 ),
-                SizedBox(height: 16.h),
                 AppText(
-                  Constants.appName,
-                  fontSize: 20.sp,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  'AI Medicine Assistant',
+                  fontSize: 10.sp,
+                  color: Colors.white38,
                 ),
-                SizedBox(height: 4.h),
-                AppText(_appVersion, fontSize: 12.sp, color: Colors.white54),
               ],
             ),
           ),
+          _buildStatusChip(isPro, tokens),
+        ],
+      ),
+    );
+  }
 
-          // 2. MENU ITEMS
+  // ── Status chip ───────────────────────────────────────
+
+  Widget _buildStatusChip(bool isPro, int tokens) {
+    if (isPro) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: UIConstants.accentGreen.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+              color: UIConstants.accentGreen.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.verified_rounded,
+                color: UIConstants.accentGreen, size: 13),
+            4.horizontalSpace,
+            AppText('Pro',
+                fontSize: 12.sp,
+                color: UIConstants.accentGreen,
+                fontWeight: FontWeight.bold),
+          ],
+        ),
+      );
+    }
+    if (tokens > 0) {
+      return GestureDetector(
+        onTap: _openPurchaseScreen,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.amber.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.stars_rounded, color: Colors.amber, size: 13),
+              4.horizontalSpace,
+              AppText('$tokens',
+                  fontSize: 12.sp,
+                  color: Colors.amber,
+                  fontWeight: FontWeight.bold),
+            ],
+          ),
+        ),
+      );
+    }
+    final remaining = DailyLimitService.instance.remainingToday();
+    return GestureDetector(
+      onTap: remaining == 0 ? _showLimitReachedDialog : null,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: remaining > 0
+              ? Colors.white.withValues(alpha: 0.06)
+              : UIConstants.accentRed.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: remaining > 0
+                ? Colors.white12
+                : UIConstants.accentRed.withValues(alpha: 0.3),
+          ),
+        ),
+        child: AppText(
+          '$remaining left',
+          fontSize: 12.sp,
+          color: remaining > 0 ? Colors.white54 : UIConstants.accentRed,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  // ── Search bar ────────────────────────────────────────
+
+  Widget _buildSearchBar(bool isPro, int tokens) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0),
+      child: Row(
+        children: [
           Expanded(
-            child: ListView(
-              padding: EdgeInsets.symmetric(vertical: 10.h),
-              physics: const BouncingScrollPhysics(),
-              children: [
-                // --- PREMIUM SECTION ---
-                _buildDrawerItem(
-                  icon: Icons.stars_rounded,
-                  text: "Get Premium Tokens",
-                  iconColor: const Color(0xFFFFD700),
-                  // Gold
-                  textColor: const Color(0xFFFFD700),
-                  onTap: () {
-                    Navigator.pop(context); // Close drawer
-                    _openPurchaseScreen();
-                  },
-                ),
-                Divider(color: Colors.white.withValues(alpha: 0.1), height: 30),
-
-                // --- ACTIONS ---
-                _buildDrawerItem(
-                  icon: Icons.share_rounded,
-                  text: "Share App",
-                  onTap: () {
-                    Navigator.pop(context);
-                    SharePlus.instance.share(
-                      ShareParams(
-                        text: Constants.shareText,
-                        subject: "Check out ${Constants.appName}!",
-                      ),
-                    );
-                  },
-                ),
-                _buildDrawerItem(
-                  icon: Icons.star_rate_rounded,
-                  text: "Rate Us",
-                  onTap: () async {
-                    Navigator.pop(context);
-                    final InAppReview inAppReview = InAppReview.instance;
-
-                    if (await inAppReview.isAvailable()) {
-                      // 🌟 Option A: Show the native In-App popup (Best UX)
-                      // Note: This popup might not show if the user has already rated recently.
-                      inAppReview.requestReview();
-                    } else {
-                      // 🔗 Option B: Fallback - Open the Store Listing
-                      // This handles 'market://' for Android and App Store URL for iOS automatically
-                      inAppReview.openStoreListing(
-                        appStoreId: Constants.appStoreId, // Required for iOS
-                      );
-                    }
-                  },
-                ),
-
-                Divider(color: Colors.white.withValues(alpha: 0.1), height: 30),
-
-                // --- LEGAL ---
-                _buildDrawerItem(
-                  icon: Icons.privacy_tip_outlined,
-                  text: "Privacy Policy",
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => WebViewPage(
-                          title: 'Privacy Policy',
-                          url: Constants.privacyPolicyUrl,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                _buildDrawerItem(
-                  icon: Icons.description_outlined,
-                  text: "Terms & Conditions",
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => WebViewPage(
-                          title: 'Terms & Conditions',
-                          url: Constants.termsAndConditionUrl,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                _buildDrawerItem(
-                  icon: Icons.mail_outline_rounded,
-                  text: "Contact Support",
-                  onTap: () {
-                    Navigator.pop(context);
-                    try {
-                      final Uri emailLaunchUri = Uri(
-                        scheme: 'mailto',
-                        path: Constants.emailAddress,
-                        query: 'subject=App Support Request',
-                      );
-                      launchUrl(emailLaunchUri);
-                    } catch (e) {
-                      print(e);
-                    }
-                  },
-                ),
-              ],
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: UIConstants.accentGreen.withValues(alpha: 0.06),
+                    blurRadius: 20,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+              child: CustomTextField(
+                hintText: 'e.g. Paracetamol, Aspirin...',
+                prefixIcon: AppAssets.icSearch,
+                controller: _controller,
+                showDividerOnSuffixIcon: false,
+                onChanged: _onSearchTextChanged,
+                isSearchView: true,
+                showCancelButton: true,
+              ),
             ),
           ),
-
-          // 3. FOOTER
-          Padding(
-            padding: EdgeInsets.all(20.h),
-            child: AppText(
-              "Made with ❤️ in India",
-              fontSize: 12.sp,
-              color: Colors.white30,
+          12.horizontalSpace,
+          InkWell(
+            onTap: () {
+              FocusScope.of(context).unfocus();
+              _searchMedicine();
+              _combineMedicines(resetFilter: true);
+            },
+            onLongPress: () {
+              FirebaseCrashlytics.instance.crash();
+            },
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    UIConstants.accentGreen,
+                    UIConstants.accentGreen.withValues(alpha: 0.78),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: UIConstants.accentGreen.withValues(alpha: 0.4),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.search_rounded,
+                  color: Colors.black, size: 24),
             ),
           ),
         ],
@@ -697,201 +676,112 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
     );
   }
 
-  Widget _buildDrawerItem({
-    required IconData icon,
-    required String text,
-    required VoidCallback onTap,
-    Color iconColor = Colors.white70,
-    Color textColor = Colors.white,
-  }) {
-    return ListTile(
-      leading: Icon(icon, color: iconColor, size: 22),
-      title: AppText(
-        text,
-        fontSize: 15.sp,
-        fontWeight: FontWeight.w500,
-        color: textColor,
-      ),
-      onTap: onTap,
-      dense: true,
-      visualDensity: VisualDensity.compact,
-    );
-  }
+  // ── Status banner ─────────────────────────────────────
 
-  // --- UI WIDGETS ---
-
-  Widget _buildPurchaseButton() {
-    return GestureDetector(
-      onTap: () {
-        _openPurchaseScreen();
-      },
-      child: Container(
-        margin: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+  Widget _buildBanner(bool isPro, int tokens) {
+    if (isPro) {
+      return Container(
+        margin: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 0),
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 9.h),
         decoration: BoxDecoration(
-          // ✨ Gradient looks premium but takes less space visually
-          gradient: LinearGradient(
-            colors: [
-              AppColors.appPrimaryRedColor.withValues(alpha: 0.8),
-              const Color(0xFF8B0000),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: UIConstants.accentGreen.withValues(alpha: 0.07),
           borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+              color: UIConstants.accentGreen.withValues(alpha: 0.15)),
         ),
-        padding: EdgeInsets.symmetric(vertical: 6.h, horizontal: 12.w),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                const Icon(Icons.stars, color: Colors.amber, size: 20),
-                SizedBox(width: 10.w),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AppText(
-                      "Get Search Credits",
-                      fontSize: 14.sp,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      lineHeight: 1.3,
-                    ),
-                    AppText(
-                      "Unlock instant AI analysis",
-                      fontSize: 12.sp,
-                      color: Colors.white.withValues(alpha: 0.5),
-                      lineHeight: 1.3,
-                    ),
-                  ],
-                ),
-              ],
+            const Icon(Icons.all_inclusive_rounded,
+                color: UIConstants.accentGreen, size: 14),
+            8.horizontalSpace,
+            Expanded(
+              child: AppText(
+                'Pro · unlimited searches, no ads, full access',
+                fontSize: 11.sp,
+                color: UIConstants.accentGreen,
+              ),
             ),
-            const Icon(Icons.chevron_right, color: Colors.white54, size: 20),
+            const Icon(Icons.verified_rounded,
+                color: UIConstants.accentGreen, size: 12),
+          ],
+        ),
+      );
+    }
+    if (tokens > 0) {
+      return GestureDetector(
+        onTap: _openPurchaseScreen,
+        child: Container(
+          margin: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 0),
+          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 9.h),
+          decoration: BoxDecoration(
+            color: Colors.amber.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(12),
+            border:
+                Border.all(color: Colors.amber.withValues(alpha: 0.2)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.stars_rounded,
+                  color: Colors.amber, size: 14),
+              8.horizontalSpace,
+              Expanded(
+                child: AppText(
+                  '$tokens credits · tap to buy more',
+                  fontSize: 11.sp,
+                  color: Colors.amber.shade200,
+                ),
+              ),
+              Icon(Icons.add_circle_outline_rounded,
+                  color: Colors.amber.withValues(alpha: 0.6), size: 14),
+            ],
+          ),
+        ),
+      );
+    }
+    final remaining = DailyLimitService.instance.remainingToday();
+    final color =
+        remaining > 0 ? Colors.lightBlueAccent : UIConstants.accentRed;
+    return GestureDetector(
+      onTap: remaining == 0 ? _showLimitReachedDialog : null,
+      child: Container(
+        margin: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 0),
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 9.h),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.07),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              remaining > 0
+                  ? Icons.hourglass_top_rounded
+                  : Icons.lock_clock_rounded,
+              color: color,
+              size: 14,
+            ),
+            8.horizontalSpace,
+            Expanded(
+              child: AppText(
+                remaining > 0
+                    ? '$remaining free search${remaining == 1 ? '' : 'es'} left today'
+                    : 'Daily limit reached · upgrade or watch an ad',
+                fontSize: 11.sp,
+                color: color,
+              ),
+            ),
+            if (remaining == 0) ...[
+              4.horizontalSpace,
+              Icon(Icons.chevron_right_rounded,
+                  color: color.withValues(alpha: 0.6), size: 14),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildInfoBanner() {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 10.w),
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0D3A0D).withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.greenAccent.withValues(alpha: 0.15)),
-      ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.check_circle_outline,
-            color: Colors.greenAccent,
-            size: 16,
-          ),
-          SizedBox(width: 10.w),
-          Expanded(
-            child: AppText(
-              "Search once → Access forever! No tokens needed for previously searched items.",
-              fontSize: 11.sp,
-              color: Colors.greenAccent,
-              lineHeight: 1,
-              maxLines: 10,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSearchBar() {
-    const double componentHeight = 46.0;
-
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.w),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: CustomTextField(
-                  hintText: 'e.g. Paracetamol, Aspirin...',
-                  prefixIcon: AppAssets.icSearch,
-                  controller: _controller,
-                  showDividerOnSuffixIcon: false,
-                  onChanged: _onSearchTextChanged,
-                  isSearchView: true,
-                  showCancelButton: true,
-                ),
-              ),
-              const SizedBox(width: 10),
-
-              // ✨ Search Button
-              InkWell(
-                onTap: () {
-                  FocusScope.of(context).unfocus();
-                  _searchMedicine();
-                  _combineMedicines(resetFilter: true);
-                },
-                onLongPress: () {
-                  FirebaseCrashlytics.instance.crash();
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  height: componentHeight,
-                  width: componentHeight,
-                  decoration: BoxDecoration(
-                    color: UIConstants.accentGreen,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.search_rounded,
-                    color: Colors.black,
-                    size: 22,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (!isForScreenShots)
-            Padding(
-              padding: EdgeInsets.only(top: 4.h),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  AppText("Balance: ", color: Colors.white54, fontSize: 12.sp),
-                  InkWell(
-                    onTap: () {
-                      _openPurchaseScreen();
-                    },
-                    child: Row(
-                      children: [
-                        AppText(
-                          "$_tokens Credits",
-                          color: _tokens > 0
-                              ? UIConstants.accentGreen
-                              : Colors.redAccent,
-                          fontWeight: FontWeight.bold,
-                          maxLines: 20,
-                          fontSize: 13.sp,
-                        ),
-                        const SizedBox(width: 4),
-                        Icon(
-                          Icons.add_circle,
-                          size: 14.sp,
-                          color: UIConstants.accentGreen,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
+  // ── Recent searches ───────────────────────────────────
 
   Widget _buildMedicineChips() {
     if (_filteredChips.isEmpty) return const SizedBox.shrink();
@@ -900,66 +790,75 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
-          child: AppText(
-            "Recent Searches",
-            color: Colors.white.withValues(alpha: 0.6),
-            fontSize: 12.sp,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
+          padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 10.h),
+          child: Row(
+            children: [
+              const Icon(Icons.history_rounded,
+                  size: 14, color: Colors.white38),
+              6.horizontalSpace,
+              AppText(
+                'Recent Searches',
+                color: Colors.white38,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+              ),
+            ],
           ),
         ),
         SizedBox(
           width: double.infinity,
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(horizontal: 10.w),
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
             child: Row(
               children: _filteredChips.map((item) {
                 return Container(
-                  margin: EdgeInsets.only(right: 8.w, bottom: 8.h),
-                  child: Material(
-                    color: UIConstants.cardSurface,
-                    borderRadius: BorderRadius.circular(20),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(20),
-                      onTap: () {
-                        FocusScope.of(context).unfocus();
-                        _controller.text = item.originalName;
-                        _searchMedicine();
-                        _combineMedicines(resetFilter: true);
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            AppText(
-                              item.originalName,
-                              color: Colors.white,
-                              fontSize: 13.sp,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            8.horizontalSpace,
-                            InkWell(
-                              onTap: () =>
-                                  _deleteChipMedicine(item.originalName),
-                              borderRadius: BorderRadius.circular(12),
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.white.withValues(alpha: 0.1),
-                                ),
-                                child: Icon(
-                                  Icons.close_rounded,
-                                  color: Colors.white70,
-                                  size: 12.sp,
-                                ),
+                  margin: EdgeInsets.only(right: 8.w),
+                  child: GestureDetector(
+                    onTap: () {
+                      FocusScope.of(context).unfocus();
+                      _controller.text = item.originalName;
+                      _searchMedicine();
+                      _combineMedicines(resetFilter: true);
+                    },
+                    child: Container(
+                      padding:
+                          EdgeInsets.fromLTRB(12.w, 8.h, 8.w, 8.h),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.1)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.access_time_rounded,
+                              size: 12,
+                              color: Colors.white.withValues(alpha: 0.35)),
+                          6.horizontalSpace,
+                          AppText(
+                            item.originalName,
+                            fontSize: 13.sp,
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          8.horizontalSpace,
+                          GestureDetector(
+                            onTap: () =>
+                                _deleteChipMedicine(item.originalName),
+                            child: Container(
+                              padding: const EdgeInsets.all(3),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white.withValues(alpha: 0.08),
                               ),
+                              child: Icon(Icons.close_rounded,
+                                  color: Colors.white38, size: 11),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -968,191 +867,298 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
             ),
           ),
         ),
+        10.verticalSpace,
       ],
     );
   }
+
+  // ── Empty state ───────────────────────────────────────
+
+  Widget _buildEmptyState() {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(32.w, 52.h, 32.w, 0),
+      child: Column(
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [
+                  UIConstants.accentGreen.withValues(alpha: 0.14),
+                  UIConstants.accentGreen.withValues(alpha: 0.04),
+                ],
+              ),
+              border: Border.all(
+                  color: UIConstants.accentGreen.withValues(alpha: 0.2)),
+            ),
+            child: Icon(
+              Icons.medical_information_outlined,
+              size: 36,
+              color: UIConstants.accentGreen.withValues(alpha: 0.55),
+            ),
+          ),
+          24.verticalSpace,
+          AppText(
+            'Search any medicine',
+            fontSize: 19.sp,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+            textAlign: TextAlign.center,
+          ),
+          12.verticalSpace,
+          AppText(
+            'Get instant AI-powered insights on side effects, dosage, interactions, and more.',
+            fontSize: 13.sp,
+            color: Colors.white38,
+            lineHeight: 1.6,
+            maxLines: 4,
+            textAlign: TextAlign.center,
+          ),
+          28.verticalSpace,
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            children: ['💊 Side Effects', '📋 Dosage', '⚠️ Interactions', '💡 Usage Tips', '🔒 Warnings']
+                .map(
+                  (t) => Container(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: 12.w, vertical: 7.h),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.04),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.08)),
+                    ),
+                    child: AppText(t,
+                        fontSize: 12.sp, color: Colors.white54),
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── No medicine found ─────────────────────────────────
+
+  Widget buildNoMedicineFound() {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(32.w, 48.h, 32.w, 0),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: UIConstants.accentRed.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+              border: Border.all(
+                  color: UIConstants.accentRed.withValues(alpha: 0.2)),
+            ),
+            child: Icon(Icons.search_off_rounded,
+                size: 34,
+                color: UIConstants.accentRed.withValues(alpha: 0.8)),
+          ),
+          16.verticalSpace,
+          AppText(
+            'No matching medicine',
+            color: Colors.white,
+            fontSize: 18.sp,
+            fontWeight: FontWeight.bold,
+          ),
+          10.verticalSpace,
+          AppText(
+            'We couldn\'t find any medicine matching your search. Try a different keyword or check the spelling.',
+            textAlign: TextAlign.center,
+            color: Colors.white38,
+            fontSize: 13.sp,
+            maxLines: 5,
+            lineHeight: 1.55,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Result view ───────────────────────────────────────
 
   Widget _buildResultView() {
     final item = _currentMedicine!;
     final entries = item.sections.entries.toList();
 
-    return Container(
-      margin: const EdgeInsets.only(top: 8),
-      decoration: const BoxDecoration(
-        color: UIConstants.darkBackgroundStart,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(10.w, 10.h, 10.w, 10.h),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: UIConstants.accentGreen.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Icon(
-                    Icons.science_outlined,
-                    color: UIConstants.accentGreen,
-                  ),
-                ),
-                SizedBox(width: 10.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AppText(
-                        item.originalName,
-                        color: Colors.white,
-                        fontSize: 17.sp,
-                        maxLines: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      AppText(
-                        "AI Analysis Result",
-                        color: Colors.grey,
-                        fontSize: 12.sp,
-                      ),
+    // Build flat list: section cards + native ad every 4 items
+    final List<Widget> sectionWidgets = [];
+    for (int i = 0; i < entries.length; i++) {
+      final section = entries[i];
+      sectionWidgets.add(CollapsibleCard(
+        key: ValueKey(section.key),
+        title: section.key,
+        content: section.value,
+        initiallyExpanded: i < 2,
+        medicineName: item.originalName,
+      ));
+      if ((i + 1) % 4 == 0 && i < entries.length - 1) {
+        sectionWidgets.add(const NativeAdCard());
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Compact medicine header
+        Container(
+          margin: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 0),
+          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1C1C1C),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+                color: UIConstants.accentGreen.withValues(alpha: 0.18)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      UIConstants.accentGreen.withValues(alpha: 0.2),
+                      UIConstants.accentGreen.withValues(alpha: 0.06),
                     ],
                   ),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                IconButton(
-                  style: IconButton.styleFrom(
-                    backgroundColor: Colors.grey.withValues(alpha: 0.1),
-                  ),
-                  icon: const Icon(
-                    Icons.notification_add_outlined,
-                    size: 22,
-                    color: UIConstants.accentGreen,
-                  ),
-                  tooltip: 'Set reminder',
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AddReminderScreen(
-                          initialMedicineName: item.originalName,
-                        ),
-                      ),
-                    );
-                  },
+                child: const Icon(Icons.science_rounded,
+                    color: UIConstants.accentGreen, size: 17),
+              ),
+              10.horizontalSpace,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AppText(
+                      item.originalName,
+                      color: Colors.white,
+                      fontSize: 15.sp,
+                      maxLines: 1,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    3.verticalSpace,
+                    Row(
+                      children: [
+                        const Icon(Icons.auto_awesome_rounded,
+                            size: 9, color: UIConstants.accentGreen),
+                        4.horizontalSpace,
+                        AppText('AI Analysis',
+                            fontSize: 10.sp,
+                            color: UIConstants.accentGreen,
+                            fontWeight: FontWeight.w600),
+                        8.horizontalSpace,
+                        Container(width: 1, height: 10, color: Colors.white12),
+                        8.horizontalSpace,
+                        AppText('${entries.length} sections',
+                            fontSize: 10.sp, color: Colors.white30),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        AddReminderScreen(initialMedicineName: item.originalName),
+                  ),
+                ),
+                child: Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: UIConstants.accentGreen.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.notifications_none_rounded,
+                      size: 16, color: UIConstants.accentGreen),
+                ),
+              ),
+            ],
           ),
-          const Divider(color: Colors.white10),
-          ListView.separated(
-            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 5.h),
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            // Scroll is handled by parent
-            itemCount: entries.length,
-            separatorBuilder: (c, i) => SizedBox(height: 8.h),
-            itemBuilder: (context, index) {
-              final section = entries[index];
-              return CollapsibleCard(
-                key: ValueKey(section.key),
-                title: section.key,
-                content: section.value,
-                initiallyExpanded: index < 2,
-                medicineName: item.originalName,
-              );
-            },
+        ),
+        10.verticalSpace,
+        // Sections with native ads injected
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          child: Column(
+            children: sectionWidgets
+                .map((w) => Padding(
+                      padding: EdgeInsets.only(bottom: 6.h),
+                      child: w,
+                    ))
+                .toList(),
           ),
-          SizedBox(height: 10.h),
-        ],
-      ),
+        ),
+        16.verticalSpace,
+      ],
     );
   }
 
-  Widget _buildBottomBar() {
+
+
+  // ── History bar ───────────────────────────────────────
+
+  Widget _buildHistoryBar() {
     return Container(
-      color: const Color(0xFF1E1E1E),
-      padding: EdgeInsets.fromLTRB(16.w, 2.h, 16.w, 5.h),
+      color: UIConstants.darkBackgroundEnd,
+      padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 8.h),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Padding(
-            padding: EdgeInsets.symmetric(vertical: 8.h),
-            child: SizedBox(
-              width: double.infinity,
-              height: 45.h,
-              // ✨ Matches the height of your Search Bar/Inputs
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const MedicineHistoryScreen(),
-                    ),
-                  );
-                },
-                style: OutlinedButton.styleFrom(
-                  // ✨ Soft background fill (matches your text fields)
-                  backgroundColor: Colors.white.withValues(alpha: 0.05),
-                  // ✨ Much softer border color
-                  side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  // ✨ Softer rounded corners (matches cards)
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  // ✨ Splash effect when tapped
-                  overlayColor: Colors.white.withValues(alpha: 0.1),
-                ),
-                icon: Icon(
-                  Icons.history_rounded, // Rounded icon looks friendlier
-                  size: 20,
-                  color: Colors.white.withValues(
-                    alpha: 0.7,
-                  ), // Slightly dimmed icon
-                ),
-                label: AppText(
-                  "View History",
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0.5,
-                ),
+          SizedBox(
+            width: double.infinity,
+            height: 44.h,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const MedicineHistoryScreen()),
+                );
+              },
+              style: OutlinedButton.styleFrom(
+                backgroundColor: Colors.white.withValues(alpha: 0.04),
+                side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+              icon: Icon(Icons.history_rounded,
+                  size: 16,
+                  color: Colors.white.withValues(alpha: 0.5)),
+              label: AppText(
+                'View Full History',
+                fontSize: 13.sp,
+                color: Colors.white54,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
-          if (!isForScreenShots)
+          if (!isForScreenShots) ...[
+            4.verticalSpace,
             AppText(
-              "Disclaimer: This app provides AI-generated information for educational purposes only. It does not replace professional medical advice. Always consult a doctor.",
+              'Disclaimer: AI-generated info for educational purposes only. Always consult a doctor.',
               textAlign: TextAlign.center,
               fontSize: 9.sp,
-              color: Colors.grey,
-              lineHeight: 1,
-              maxLines: 200,
+              color: Colors.white24,
+              lineHeight: 1.3,
+              maxLines: 2,
             ),
+          ],
         ],
       ),
     );
-  }
-
-  void _openPurchaseScreen() async {
-    final online = await Utils.checkInternetWithLoading();
-    if (!online) {
-      Utils.showMessage(
-        context,
-        "No internet connection. Please check your network.",
-        isError: true,
-      );
-      return;
-    }
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const PurchaseTokenScreen()),
-    ).then((_) {
-      setState(() {
-        _tokens = Prefs.getTokens(); // refresh token count
-      });
-    });
   }
 }

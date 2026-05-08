@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dart analyze *)",
+      "Bash(flutter pub *)",
+      "PowerShell(cd \"c:\\\\Users\\\\rajka\\\\ai_medicine_tracker\"; dart analyze lib/ 2>&1 | Where-Object { $_ -match \"error\" } | Select-Object -First 20)",
+      "Bash(flutter analyze *)"
+    ]
+  }
+}

@@ -265,13 +265,13 @@ class CustomTextFieldState extends State<CustomTextField> {
                   ),
                   textInputAction: widget.textInputAction,
                   keyboardType: widget.textInputType,
+                  textCapitalization: TextCapitalization.sentences,
                   maxLength: widget.maxLength,
                   onChanged: widget.onChanged,
                   autofocus: false,
                   maxLines: widget.maxLines,
                   inputFormatters: widget.inputFormatters,
                   onSubmitted: widget.onSubmitted,
-                  // ✨ Center text vertically
                   textAlignVertical: TextAlignVertical.center,
                   decoration: InputDecoration(
                     border: InputBorder.none,
