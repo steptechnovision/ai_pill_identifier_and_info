@@ -11,6 +11,7 @@ import 'package:ai_medicine_tracker/services/admob_service.dart';
 import 'package:ai_medicine_tracker/services/daily_limit_service.dart';
 import 'package:ai_medicine_tracker/services/subscription_service.dart';
 import 'package:ai_medicine_tracker/widgets/app_text.dart';
+import 'package:ai_medicine_tracker/widgets/banner_ad_widget.dart';
 import 'package:ai_medicine_tracker/widgets/native_ad_card.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -273,7 +274,12 @@ class _DrugInteractionScreenState extends State<DrugInteractionScreen> {
           ),
         ],
       ),
-      body: _buildChecker(),
+      body: Column(
+        children: [
+          Expanded(child: _buildChecker()),
+          const BannerAdWidget(),
+        ],
+      ),
     );
   }
 

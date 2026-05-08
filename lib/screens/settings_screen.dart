@@ -115,8 +115,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
             ),
             24.verticalSpace,
-            _buildSimulateProToggle(),
-            24.verticalSpace,
+            // _buildSimulateProToggle(),
+            // 24.verticalSpace,
             _sectionTitle('Account'),
             _buildTile(
               icon: Icons.delete_sweep_outlined,
@@ -132,11 +132,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
               subtitle: 'Love the app? Leave us a review',
               iconColor: Colors.amber,
               onTap: () async {
-                final review = InAppReview.instance;
-                if (await review.isAvailable()) {
-                  review.requestReview();
-                } else {
-                  review.openStoreListing(appStoreId: Constants.appStoreId);
+                final messenger = ScaffoldMessenger.of(context);
+                Utils.showLoading(message: 'Opening store...');
+                try {
+                  final review = InAppReview.instance;
+                  final available = await review.isAvailable();
+                  await Utils.hideLoading();
+                  if (available) {
+                    await review.requestReview();
+                  } else {
+                    await review.openStoreListing(
+                        appStoreId: Constants.appStoreId);
+                  }
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: const Text(
+                        'Thank you for your support! ❤️',
+                        style: TextStyle(color: Colors.white, fontSize: 14),
+                      ),
+                      backgroundColor: const Color(0xFF1E1E1E),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
+                } catch (_) {
+                  await Utils.hideLoading();
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: const Text(
+                        'Could not open the store. Please try again.',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      backgroundColor: Colors.redAccent,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                  );
                 }
               },
             ),
@@ -292,7 +326,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   AppText(
                     count == 0
                         ? 'Add members to track their medications separately'
-                        : '$count member${count == 1 ? '' : 's'} · Free: 2, Pro: 5',
+                        : '$count member${count == 1 ? '' : 's'} · Free: ${Constants.freeFamilyMembersLimit}, Pro: ${Constants.proFamilyMembersLimit}',
                     fontSize: 11.sp,
                     color: Colors.white38,
                   ),

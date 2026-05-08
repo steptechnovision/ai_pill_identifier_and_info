@@ -24,9 +24,11 @@ class Constants {
 
   // ── Daily limits (free / Pro) ────────────────────────
   static const int freeDailySearchLimit = 3;
-  static const int freeDailyInteractionLimit = 5;
+  static const int freeDailyInteractionLimit = 2;
   static const int proDailySearchLimit = 30;
   static const int proDailyInteractionLimit = 20;
+  static const int freeFamilyMembersLimit = 2;
+  static const int proFamilyMembersLimit = 20;
 
   // ── Pro monthly token bundle ──────────────────────────
   static const int proMonthlyTokens = 30; // granted once per calendar month

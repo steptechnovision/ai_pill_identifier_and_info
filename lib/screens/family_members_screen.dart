@@ -1,4 +1,5 @@
 import 'package:ai_medicine_tracker/helper/app_colors.dart';
+import 'package:ai_medicine_tracker/helper/constant.dart';
 import 'package:ai_medicine_tracker/helper/utils.dart';
 import 'package:ai_medicine_tracker/models/family_member.dart';
 import 'package:ai_medicine_tracker/screens/paywall_screen.dart';
@@ -38,7 +39,7 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
 
   void _load() => setState(() => _family = FamilyMember.loadAll());
 
-  int get _memberLimit => _isPro ? 20 : 2;
+  int get _memberLimit => _isPro ? Constants.proFamilyMembersLimit : Constants.freeFamilyMembersLimit;
 
   @override
   Widget build(BuildContext context) {
@@ -100,7 +101,7 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
             ),
             12.verticalSpace,
             AppText(
-              'Track medications and reminders for your family members separately. Free plan supports up to 2 members.',
+              'Track medications and reminders for your family members separately. Free plan supports up to ${Constants.freeFamilyMembersLimit} members.',
               fontSize: 13.sp,
               color: Colors.white54,
               textAlign: TextAlign.center,
@@ -186,8 +187,8 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
               remaining > 0
                   ? '$used of $limit members used · $remaining remaining'
                   : _isPro
-                      ? 'Maximum 5 members reached (Pro)'
-                      : 'Free limit reached (2/2) · Upgrade for 5 members',
+                      ? 'Maximum ${Constants.proFamilyMembersLimit} members reached (Pro)'
+                      : 'Free limit reached (${Constants.freeFamilyMembersLimit}/${Constants.freeFamilyMembersLimit}) · Upgrade for ${Constants.proFamilyMembersLimit} members',
               fontSize: 12.sp,
               color: color,
               fontWeight: FontWeight.w500,
@@ -320,7 +321,7 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
       if (!_isPro) {
         Utils.showMessage(
           context,
-          'Free plan supports up to 2 members. Upgrade for 5.',
+          'Free plan supports up to ${Constants.freeFamilyMembersLimit} members. Upgrade to Pro for ${Constants.proFamilyMembersLimit}.',
           isError: true,
         );
         await Navigator.push(

@@ -1,4 +1,7 @@
-import 'dart:math';
+import 'dart:developer';
+import 'dart:math' hide log;
+
+import 'package:flutter/services.dart';
 
 import 'package:ai_medicine_tracker/helper/app_colors.dart';
 import 'package:ai_medicine_tracker/screens/camera_scan_screen.dart';
@@ -11,6 +14,8 @@ import 'package:ai_medicine_tracker/services/subscription_service.dart';
 import 'package:ai_medicine_tracker/widgets/banner_ad_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:ai_medicine_tracker/screens/paywall_screen.dart';
+import 'package:in_app_update/in_app_update.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.initialTab = 0});
@@ -24,6 +29,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   late int _currentIndex;
   bool _wasTrulyPaused = false;
+  DateTime? _lastBackPress;
 
   // Interstitial every 3–6 tab switches (randomised)
   int _tabSwitchCount = 0;
@@ -46,21 +52,51 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _nextInterstitialAt = _randomThreshold();
     WidgetsBinding.instance.addObserver(this);
     SubscriptionService.instance.proChangeNotifier.addListener(_onProChanged);
-    // Show app open ad once per cold launch.
-    // HomeScreen is only reachable after onboarding is done, so no need
-    // to check onboarding status here.
+    AdmobService.instance.tiredOfAdsNotifier.addListener(_onTiredOfAds);
     AdmobService.instance.showColdLaunchAd();
+    _checkForUpdate();
   }
 
   @override
   void dispose() {
     SubscriptionService.instance.proChangeNotifier.removeListener(_onProChanged);
+    AdmobService.instance.tiredOfAdsNotifier.removeListener(_onTiredOfAds);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
   void _onProChanged() {
     if (mounted) setState(() {});
+  }
+
+  void _onTiredOfAds() {
+    if (!mounted || SubscriptionService.instance.isPro) return;
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) => _TiredOfAdsDialog(
+        onUpgrade: () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const PaywallScreen()),
+          ).then((_) => setState(() {}));
+        },
+      ),
+    );
+  }
+
+  Future<void> _checkForUpdate() async {
+    try {
+      final info = await InAppUpdate.checkForUpdate();
+      if (!mounted) return;
+      if (info.updateAvailability == UpdateAvailability.updateAvailable) {
+        await InAppUpdate.startFlexibleUpdate();
+        await InAppUpdate.completeFlexibleUpdate();
+      }
+    } catch (e) {
+      log('In-app update check failed: $e');
+    }
   }
 
   int _randomThreshold() => 3 + Random().nextInt(4); // 3, 4, 5, or 6
@@ -88,13 +124,49 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: UIConstants.darkBackgroundStart,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _tabs,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        // If not on the first tab, go there first
+        if (_currentIndex != 0) {
+          setState(() {
+            _currentIndex = 0;
+            _lastBackPress = null;
+          });
+          return;
+        }
+        // On first tab — double press to exit
+        final now = DateTime.now();
+        if (_lastBackPress == null ||
+            now.difference(_lastBackPress!) > const Duration(seconds: 2)) {
+          _lastBackPress = now;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                'Press back again to exit',
+                style: TextStyle(color: Colors.white, fontSize: 14),
+              ),
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              backgroundColor: const Color(0xFF1E1E1E),
+            ),
+          );
+        } else {
+          SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: UIConstants.darkBackgroundStart,
+        body: IndexedStack(
+          index: _currentIndex,
+          children: _tabs,
+        ),
+        bottomNavigationBar: _buildBottomNav(),
       ),
-      bottomNavigationBar: _buildBottomNav(),
     );
   }
 
@@ -221,6 +293,79 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 color: isSelected ? UIConstants.accentGreen : Colors.white38,
               ),
               child: Text(label),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TiredOfAdsDialog extends StatelessWidget {
+  const _TiredOfAdsDialog({required this.onUpgrade});
+  final VoidCallback onUpgrade;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: const Color(0xFF141414),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: UIConstants.accentGreen.withValues(alpha: 0.12),
+              ),
+              child: const Icon(Icons.block_rounded,
+                  color: UIConstants.accentGreen, size: 28),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Tired of Ads?',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Upgrade to Pro and enjoy an ad-free experience with unlimited features.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.55), fontSize: 13, height: 1.5),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: onUpgrade,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: UIConstants.accentGreen,
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Go Pro — Remove Ads',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w800, fontSize: 15)),
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Maybe Later',
+                  style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.35), fontSize: 13)),
             ),
           ],
         ),

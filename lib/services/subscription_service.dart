@@ -22,6 +22,10 @@ class SubscriptionService {
   int _annualTrialDays = 3;
   int get annualTrialDays => _annualTrialDays;
 
+  // Regular (post-trial) annual price from Play Store
+  String _annualRegularPrice = '';
+  String get annualRegularPrice => _annualRegularPrice;
+
   // Fires whenever Pro status changes — UI can listen and rebuild instantly
   final ValueNotifier<int> proChangeNotifier = ValueNotifier(0);
 
@@ -29,11 +33,15 @@ class SubscriptionService {
 
   bool _initRestoreDone = false;
   bool _activeSubFoundDuringInit = false;
+  bool _restoreErrorDuringInit = false;
 
   Future<void> init() async {
     _sub = _iap.purchaseStream.listen(
       _onPurchaseUpdate,
-      onError: (e) => log('SubscriptionService stream error: $e'),
+      onError: (e) {
+        log('SubscriptionService stream error: $e');
+        if (!_initRestoreDone) _restoreErrorDuringInit = true;
+      },
     );
 
     final available = await _iap.isAvailable();
@@ -44,8 +52,9 @@ class SubscriptionService {
 
     // Wait for stream to deliver all restored purchases, then verify Pro status
     await Future.delayed(const Duration(seconds: 4));
-    if (Prefs.isPro() && !_activeSubFoundDuringInit) {
+    if (Prefs.isPro() && !_activeSubFoundDuringInit && !_restoreErrorDuringInit) {
       await Prefs.setProActive(false);
+      proChangeNotifier.value++;
       log('⚠️ No active subscription found — reverted to free');
     }
     _initRestoreDone = true;
@@ -91,8 +100,11 @@ class SubscriptionService {
             if (days > 0) {
               _annualTrialDays = days;
               log('✅ Annual trial days from Play Store: $days');
-              return;
             }
+          } else if (phase.priceAmountMicros > 0 &&
+              _annualRegularPrice.isEmpty) {
+            _annualRegularPrice = phase.formattedPrice;
+            log('✅ Annual regular price from Play Store: $_annualRegularPrice');
           }
         }
       }

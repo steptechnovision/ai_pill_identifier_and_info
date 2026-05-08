@@ -23,6 +23,20 @@ class Prefs {
   static const String keyProProductId = 'pro_product_id';
   static const String keySimulatePro = 'simulate_pro_mode';
 
+  // ── in-app review ─────────────────────────────────────
+  static const String keyReviewSearchCount = 'review_search_count';
+  static const String keyReviewAsked = 'review_asked';
+
+  static int getReviewSearchCount() => prefs.getInt(keyReviewSearchCount) ?? 0;
+
+  static Future<void> incrementReviewSearchCount() async =>
+      prefs.setInt(keyReviewSearchCount, getReviewSearchCount() + 1);
+
+  static bool isReviewAsked() => prefs.getBool(keyReviewAsked) ?? false;
+
+  static Future<void> markReviewAsked() async =>
+      prefs.setBool(keyReviewAsked, true);
+
   // ── my medications ────────────────────────────────────
   static const String keyMyMedications = 'my_medications_json';
 

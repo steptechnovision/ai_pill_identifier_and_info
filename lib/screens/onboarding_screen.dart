@@ -357,12 +357,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final features = [
       (Icons.auto_awesome_rounded, 'AI Medicine Analysis',
           'Instant info on any medicine — side effects, dosage, interactions'),
+      (Icons.camera_alt_rounded, 'Camera Pill Scanner',
+          'Scan any pill or tablet — AI identifies it instantly'),
       (Icons.warning_amber_rounded, 'Drug Interaction Checker',
           'Know if your medicines are safe to take together'),
       (Icons.alarm_rounded, 'Smart Reminders',
           'Never miss a dose with personalised reminders'),
-      (Icons.history_rounded, 'Unlimited History',
-          'All your searched medicines saved forever — free'),
+      (Icons.medication_rounded, 'My Medications',
+          'Track your personal medication list for you and your family'),
     ];
 
     return Padding(

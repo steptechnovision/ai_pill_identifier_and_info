@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 
+import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../helper/constant.dart';
@@ -18,6 +19,12 @@ class AdmobService {
   InterstitialAd? _interstitialAd;
   bool _interstitialLoading = false;
   int _searchCount = 0;
+  int _interstitialShownCount = 0;
+  bool _tiredOfAdsTriggered = false;
+
+  // Fires once when the tired-of-ads threshold is reached.
+  // HomeScreen listens and shows the upgrade dialog.
+  final ValueNotifier<int> tiredOfAdsNotifier = ValueNotifier(0);
 
   // ── App Open ──────────────────────────────────────────
   AppOpenAd? _appOpenAd;
@@ -137,6 +144,11 @@ class AdmobService {
     );
     await _interstitialAd!.show();
     _interstitialAd = null;
+    _interstitialShownCount++;
+    if (_interstitialShownCount >= 3 && !_tiredOfAdsTriggered) {
+      _tiredOfAdsTriggered = true;
+      tiredOfAdsNotifier.value++;
+    }
   }
 
   // ── App Open ──────────────────────────────────────────

@@ -263,8 +263,14 @@ class _PaywallScreenState extends State<PaywallScreen> {
                   ],
                 ),
               ),
-              const Icon(Icons.check_circle_rounded,
-                  color: UIConstants.accentGreen, size: 16),
+              Container(
+                width: 7,
+                height: 7,
+                decoration: const BoxDecoration(
+                  color: UIConstants.accentGreen,
+                  shape: BoxShape.circle,
+                ),
+              ),
             ],
           ),
         );
@@ -332,11 +338,13 @@ class _PaywallScreenState extends State<PaywallScreen> {
           else ...[
             _buildPriceCard(
               id: Constants.subAnnualId,
-              price: _products
-                      .where((p) => p.id == Constants.subAnnualId)
-                      .firstOrNull
-                      ?.price ??
-                  Constants.subAnnualFallbackPrice,
+              price: _sub.annualRegularPrice.isNotEmpty
+                  ? _sub.annualRegularPrice
+                  : (_products
+                          .where((p) => p.id == Constants.subAnnualId)
+                          .firstOrNull
+                          ?.price ??
+                      Constants.subAnnualFallbackPrice),
               isAnnual: true,
               trialDays: _sub.annualTrialDays,
             ),
@@ -509,7 +517,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                   4.verticalSpace,
                   AppText(
                     isAnnual && trialDays > 0
-                        ? '$trialDays-day free trial included'
+                        ? '$trialDays-day free trial · then $price/year'
                         : isAnnual
                             ? 'Best annual value'
                             : 'Cancel anytime',

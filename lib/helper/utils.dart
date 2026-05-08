@@ -53,11 +53,11 @@ class Utils {
     messenger.showSnackBar(snackBar);
   }
 
-  /// 🔹 Special green toast — cache hit = no token used
+  /// 🔹 Green toast — result loaded from local cache
   static void showNoTokenUsed(BuildContext context) {
     showToast(
       context,
-      message: "No token used! ✔ You already searched this",
+      message: "Loaded from cache ✔ No token used",
       backgroundColor: Colors.green,
     );
   }

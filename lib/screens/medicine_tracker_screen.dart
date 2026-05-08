@@ -21,6 +21,7 @@ import 'package:ai_medicine_tracker/widgets/custom_text_field.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:in_app_review/in_app_review.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MedicineTrackerScreen extends StatefulWidget {
@@ -146,7 +147,6 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
         await DailyLimitService.instance.record(ApiFeature.search);
         if (!mounted) return;
         setState(() {});
-        Utils.showNoTokenUsed(context);
       } else if (tokens > 0) {
         await Prefs.deductToken();
         if (!mounted) return;
@@ -156,12 +156,12 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
         await DailyLimitService.instance.record(ApiFeature.search);
         if (!mounted) return;
         setState(() {});
-        Utils.showNoTokenUsed(context);
       }
 
       await _addToRecentSearches(medicine.canonicalName);
       if (!medicine.fromCache) {
         AdmobService.instance.onNewSearch();
+        _maybeAskForReview();
       }
     } catch (e, st) {
       log('❌ Error: $e\n$st');
@@ -179,6 +179,19 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
       });
     } finally {
       _isLoading.value = false;
+    }
+  }
+
+  Future<void> _maybeAskForReview() async {
+    if (Prefs.isReviewAsked()) return;
+    await Prefs.incrementReviewSearchCount();
+    if (Prefs.getReviewSearchCount() < 5) return;
+    await Prefs.markReviewAsked();
+    try {
+      final review = InAppReview.instance;
+      if (await review.isAvailable()) review.requestReview();
+    } catch (e) {
+      log('In-app review failed: $e');
     }
   }
 
@@ -232,33 +245,6 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
                 maxLines: 5,
               ),
               24.verticalSpace,
-              if (AdmobService.instance.isReady) ...[
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: OutlinedButton.icon(
-                    onPressed: () async {
-                      Navigator.pop(ctx);
-                      final earned = await AdmobService.instance.showRewarded();
-                      if (earned) {
-                        await DailyLimitService.instance.grantRewardedBonus();
-                        if (mounted) {
-                          setState(() {});
-                          Utils.showMessage(context, '+1 bonus search unlocked!', success: true);
-                        }
-                      }
-                    },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.amber,
-                      side: const BorderSide(color: Colors.amber),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                    icon: const Icon(Icons.play_circle_outline_rounded, color: Colors.amber, size: 20),
-                    label: AppText('Watch Ad for +1 Search', color: Colors.amber, fontSize: 14.sp),
-                  ),
-                ),
-                10.verticalSpace,
-              ],
               SizedBox(
                 width: double.infinity,
                 height: 48,
@@ -287,11 +273,11 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
                     _openPurchaseScreen();
                   },
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white54,
-                    side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+                    foregroundColor: Colors.amber,
+                    side: const BorderSide(color: Colors.amber),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
-                  child: AppText('Buy Credits', fontSize: 14.sp),
+                  child: AppText('Buy Credits', fontSize: 14.sp, color: Colors.amber, fontWeight: FontWeight.w600),
                 ),
               ),
               10.verticalSpace,

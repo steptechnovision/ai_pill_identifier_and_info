@@ -13,6 +13,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:in_app_review/in_app_review.dart';
 
 class CameraScanScreen extends StatefulWidget {
   const CameraScanScreen({super.key});
@@ -110,6 +111,19 @@ class _CameraScanScreenState extends State<CameraScanScreen> {
     );
   }
 
+  Future<void> _maybeAskForReview() async {
+    if (Prefs.isReviewAsked()) return;
+    await Prefs.incrementReviewSearchCount();
+    if (Prefs.getReviewSearchCount() < 3) return;
+    await Prefs.markReviewAsked();
+    try {
+      final review = InAppReview.instance;
+      if (await review.isAvailable()) review.requestReview();
+    } catch (e) {
+      log('In-app review failed: $e');
+    }
+  }
+
   Future<void> _analyze() async {
     if (_image == null) return;
 
@@ -153,6 +167,7 @@ class _CameraScanScreenState extends State<CameraScanScreen> {
       final detectedName = json['medicineName'] as String? ?? 'Unknown';
       if (detectedName != 'Unknown') {
         MedicineRepository().storeCameraResult(detectedName, json);
+        _maybeAskForReview();
       }
       if (mounted) {
         setState(() {
