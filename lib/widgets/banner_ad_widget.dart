@@ -3,6 +3,7 @@ import 'package:ai_medicine_tracker/services/subscription_service.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+
 /// Full-width adaptive banner ad for non-Pro users.
 class BannerAdWidget extends StatefulWidget {
   const BannerAdWidget({super.key});
@@ -16,6 +17,23 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   AdSize? _adSize;
   bool _loaded = false;
   bool _adRequested = false;
+
+  @override
+  void initState() {
+    super.initState();
+    SubscriptionService.instance.proChangeNotifier.addListener(_onProChanged);
+  }
+
+  @override
+  void dispose() {
+    SubscriptionService.instance.proChangeNotifier.removeListener(_onProChanged);
+    _ad?.dispose();
+    super.dispose();
+  }
+
+  void _onProChanged() {
+    if (mounted) setState(() {});
+  }
 
   @override
   void didChangeDependencies() {
@@ -47,12 +65,6 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
         },
       ),
     )..load();
-  }
-
-  @override
-  void dispose() {
-    _ad?.dispose();
-    super.dispose();
   }
 
   @override

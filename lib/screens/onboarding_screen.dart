@@ -32,6 +32,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _next() {
+    FocusManager.instance.primaryFocus?.unfocus();
     if (_page < 2) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 400),
@@ -42,7 +43,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
-  void _skip() => _finish();
+  void _skip() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    _finish();
+  }
 
   Future<void> _finish() async {
     await Prefs.setUserType(_userType);
@@ -367,7 +371,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           'Track your personal medication list for you and your family'),
     ];
 
-    return Padding(
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
       padding: EdgeInsets.symmetric(horizontal: 24.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

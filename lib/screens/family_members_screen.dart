@@ -101,7 +101,9 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
             ),
             12.verticalSpace,
             AppText(
-              'Track medications and reminders for your family members separately. Free plan supports up to ${Constants.freeFamilyMembersLimit} members.',
+              _isPro
+                  ? 'Track medications and reminders for your family members separately. Your Pro plan supports up to ${Constants.proFamilyMembersLimit} members.'
+                  : 'Track medications and reminders for your family members separately. Free plan supports up to ${Constants.freeFamilyMembersLimit} members.',
               fontSize: 13.sp,
               color: Colors.white54,
               textAlign: TextAlign.center,

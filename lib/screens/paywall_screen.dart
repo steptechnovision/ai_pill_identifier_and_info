@@ -28,6 +28,30 @@ class _PaywallScreenState extends State<PaywallScreen> {
   void initState() {
     super.initState();
     _loadProducts();
+    SubscriptionService.instance.proChangeNotifier.addListener(_onProChanged);
+  }
+
+  @override
+  void dispose() {
+    SubscriptionService.instance.proChangeNotifier.removeListener(_onProChanged);
+    super.dispose();
+  }
+
+  void _onProChanged() {
+    if (!mounted || !SubscriptionService.instance.isPro) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text(
+          'Welcome to Pro! Enjoy unlimited access.',
+          style: TextStyle(color: Colors.white, fontSize: 14),
+        ),
+        backgroundColor: UIConstants.accentGreen.withValues(alpha: 0.9),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+    Navigator.pop(context, true);
   }
 
   Future<void> _loadProducts() async {
@@ -63,7 +87,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
     setState(() => _purchasing = product.id);
     try {
       await _sub.purchase(product);
-      if (mounted) Navigator.pop(context, true);
+      // Don't pop here — wait for proChangeNotifier to confirm purchase
     } catch (e) {
       if (mounted) {
         Utils.showMessage(context, 'Purchase failed. Please try again.',

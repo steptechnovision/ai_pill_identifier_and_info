@@ -1,5 +1,5 @@
 import 'package:ai_medicine_tracker/helper/constant.dart';
-import 'package:ai_medicine_tracker/helper/prefs.dart';
+import 'package:ai_medicine_tracker/services/subscription_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -18,7 +18,19 @@ class _NativeAdCardState extends State<NativeAdCard> {
   @override
   void initState() {
     super.initState();
-    if (!Prefs.isPro() && !Prefs.isSimulatePro()) _loadAd();
+    SubscriptionService.instance.proChangeNotifier.addListener(_onProChanged);
+    if (!SubscriptionService.instance.isPro) _loadAd();
+  }
+
+  @override
+  void dispose() {
+    SubscriptionService.instance.proChangeNotifier.removeListener(_onProChanged);
+    _ad?.dispose();
+    super.dispose();
+  }
+
+  void _onProChanged() {
+    if (mounted) setState(() {});
   }
 
   void _loadAd() {
@@ -38,14 +50,8 @@ class _NativeAdCardState extends State<NativeAdCard> {
   }
 
   @override
-  void dispose() {
-    _ad?.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    if (Prefs.isPro() || Prefs.isSimulatePro()) return const SizedBox.shrink();
+    if (SubscriptionService.instance.isPro) return const SizedBox.shrink();
     if (!_loaded || _ad == null) return const SizedBox.shrink();
 
     return Container(

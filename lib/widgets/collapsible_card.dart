@@ -138,7 +138,7 @@ class _CollapsibleCardState extends State<CollapsibleCard>
                       ),
                       child: AppText(
                         '$count',
-                        fontSize: 11.sp,
+                        fontSize: 12.sp,
                         fontWeight: FontWeight.w700,
                         color: color.withValues(
                             alpha: _expanded ? 1.0 : 0.6),
@@ -165,7 +165,7 @@ class _CollapsibleCardState extends State<CollapsibleCard>
                         padding: EdgeInsets.symmetric(
                             horizontal: 6.w, vertical: 4.h),
                         child: Icon(Icons.open_in_new_rounded,
-                            size: 13,
+                            size: 15,
                             color: Colors.white.withValues(alpha: 0.2)),
                       ),
                     ),
@@ -177,7 +177,7 @@ class _CollapsibleCardState extends State<CollapsibleCard>
                         color: _expanded
                             ? color.withValues(alpha: 0.8)
                             : Colors.white30,
-                        size: 18,
+                        size: 20,
                       ),
                     ),
                   ],
@@ -203,8 +203,8 @@ class _CollapsibleCardState extends State<CollapsibleCard>
                                     padding: const EdgeInsets.only(
                                         top: 6, right: 8),
                                     child: Container(
-                                      width: 4,
-                                      height: 4,
+                                      width: 6,
+                                      height: 6,
                                       decoration: BoxDecoration(
                                         color: color.withValues(alpha: 0.7),
                                         shape: BoxShape.circle,
@@ -216,7 +216,7 @@ class _CollapsibleCardState extends State<CollapsibleCard>
                                       point,
                                       color: Colors.white.withValues(
                                           alpha: 0.72),
-                                      fontSize: 13.sp,
+                                      fontSize: 15.sp,
                                       maxLines: 200,
                                       lineHeight: 1.45,
                                       fontWeight: FontWeight.w400,
