@@ -45,7 +45,19 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
   @override
   void initState() {
     super.initState();
+    SubscriptionService.instance.proChangeNotifier.addListener(_onProChanged);
     _initLogic();
+  }
+
+  @override
+  void dispose() {
+    SubscriptionService.instance.proChangeNotifier.removeListener(_onProChanged);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onProChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _initLogic() async {

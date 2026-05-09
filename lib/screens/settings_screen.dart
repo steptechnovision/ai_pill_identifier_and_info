@@ -29,7 +29,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
+    SubscriptionService.instance.proChangeNotifier.addListener(_onProChanged);
     _loadFamily();
+  }
+
+  @override
+  void dispose() {
+    SubscriptionService.instance.proChangeNotifier.removeListener(_onProChanged);
+    super.dispose();
+  }
+
+  void _onProChanged() {
+    if (mounted) setState(() {});
   }
 
   void _loadFamily() {
