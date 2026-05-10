@@ -1,4 +1,5 @@
 import 'package:ai_medicine_tracker/helper/app_colors.dart';
+import 'package:ai_medicine_tracker/helper/language_config.dart';
 import 'package:ai_medicine_tracker/helper/prefs.dart';
 import 'package:ai_medicine_tracker/models/user_medication.dart';
 import 'package:ai_medicine_tracker/screens/home_screen.dart';
@@ -17,12 +18,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _page = 0;
 
-  // Page 1 — user type
+  // Page 0 — user type
   String _userType = 'patient';
 
-  // Page 2 — my medications quick-add
+  // Page 1 — my medications quick-add
   final TextEditingController _medController = TextEditingController();
   final List<String> _addedMeds = [];
+
+  // Page 2 — language selection
+  String _selectedLang = 'en';
 
   @override
   void dispose() {
@@ -33,7 +37,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   void _next() {
     FocusManager.instance.primaryFocus?.unfocus();
-    if (_page < 2) {
+    if (_page < 3) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOut,
@@ -50,6 +54,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Future<void> _finish() async {
     await Prefs.setUserType(_userType);
+    await Prefs.setLanguage(_selectedLang);
     await Prefs.setOnboardingDone();
 
     // Persist any medications the user added
@@ -90,7 +95,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               padding: EdgeInsets.symmetric(vertical: 16.h),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(3, (i) {
+                children: List.generate(4, (i) {
                   return AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
                     margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -115,6 +120,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 children: [
                   _buildPage1(),
                   _buildPage2(),
+                  _buildPageLanguage(),
                   _buildPage3(),
                 ],
               ),
@@ -138,13 +144,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         ),
                       ),
                       child: AppText(
-                        _page == 2 ? 'Get Started' : 'Continue',
+                        _page == 3 ? 'Get Started' : 'Continue',
                         fontWeight: FontWeight.bold,
                         fontSize: 16.sp,
                       ),
                     ),
                   ),
-                  if (_page < 2) ...[
+                  if (_page < 3) ...[
                     8.verticalSpace,
                     TextButton(
                       onPressed: _skip,
@@ -351,6 +357,87 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  // ── Page 2: Language selection ───────────────────────
+  Widget _buildPageLanguage() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 24.w),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          24.verticalSpace,
+          AppText(
+            'Choose Language 🌐',
+            fontSize: 26.sp,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+          8.verticalSpace,
+          AppText(
+            'AI responses will be in your preferred language.\nMedicine names stay in English.',
+            fontSize: 14.sp,
+            color: Colors.white54,
+            lineHeight: 1.5,
+            maxLines: 5,
+          ),
+          24.verticalSpace,
+          Expanded(
+            child: ListView(
+              physics: const BouncingScrollPhysics(),
+              children: AppLanguage.supported.map((lang) {
+                final selected = _selectedLang == lang.code;
+                return GestureDetector(
+                  onTap: () => setState(() => _selectedLang = lang.code),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    margin: EdgeInsets.only(bottom: 10.h),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: 16.w, vertical: 13.h),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? UIConstants.accentGreen.withValues(alpha: 0.12)
+                          : Colors.white.withValues(alpha: 0.04),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: selected
+                            ? UIConstants.accentGreen.withValues(alpha: 0.5)
+                            : Colors.white12,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              AppText(lang.native,
+                                  fontSize: 15.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white),
+                              if (lang.code != 'en')
+                                AppText(lang.name,
+                                    fontSize: 12.sp,
+                                    color: Colors.white38),
+                            ],
+                          ),
+                        ),
+                        if (selected)
+                          Icon(Icons.check_circle_rounded,
+                              color: UIConstants.accentGreen, size: 20)
+                        else
+                          const Icon(Icons.radio_button_unchecked_rounded,
+                              color: Colors.white24, size: 20),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
         ],
       ),
     );

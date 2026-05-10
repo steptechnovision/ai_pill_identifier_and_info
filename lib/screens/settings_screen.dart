@@ -1,5 +1,6 @@
 import 'package:ai_medicine_tracker/helper/app_colors.dart';
 import 'package:ai_medicine_tracker/helper/constant.dart';
+import 'package:ai_medicine_tracker/helper/language_config.dart';
 import 'package:ai_medicine_tracker/helper/prefs.dart';
 import 'package:ai_medicine_tracker/helper/utils.dart';
 import 'package:ai_medicine_tracker/models/family_member.dart';
@@ -7,8 +8,10 @@ import 'package:ai_medicine_tracker/screens/drug_interaction_screen.dart';
 import 'package:ai_medicine_tracker/screens/family_members_screen.dart';
 import 'package:ai_medicine_tracker/screens/paywall_screen.dart';
 import 'package:ai_medicine_tracker/services/admob_service.dart';
+import 'package:ai_medicine_tracker/services/reminder_service.dart';
 import 'package:ai_medicine_tracker/services/subscription_service.dart';
 import 'package:ai_medicine_tracker/widgets/app_text.dart';
+import 'package:app_settings/app_settings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:in_app_review/in_app_review.dart';
@@ -25,12 +28,19 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool get _isPro => SubscriptionService.instance.isPro;
   List<FamilyMember> _family = [];
+  bool _notifGranted = true;
 
   @override
   void initState() {
     super.initState();
     SubscriptionService.instance.proChangeNotifier.addListener(_onProChanged);
     _loadFamily();
+    _checkNotifPermission();
+  }
+
+  Future<void> _checkNotifPermission() async {
+    final granted = await ReminderService.instance.areNotificationsEnabled();
+    if (mounted) setState(() => _notifGranted = granted);
   }
 
   @override
@@ -110,7 +120,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _sectionTitle('Family & Caregiving'),
             _buildFamilyTile(),
             24.verticalSpace,
+            _sectionTitle('Language'),
+            _buildLanguageTile(),
+            24.verticalSpace,
             _sectionTitle('Tools'),
+            if (!_notifGranted) ...[
+              _buildNotifPermissionTile(),
+              16.verticalSpace,
+            ],
             _buildTile(
               icon: Icons.compare_arrows_rounded,
               title: 'Drug Interaction Checker',
@@ -218,6 +235,78 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  // ── Language selector ─────────────────────────────────
+
+  Widget _buildLanguageTile() {
+    final currentCode = Prefs.getLanguage();
+    final current = AppLanguage.fromCode(currentCode);
+    return GestureDetector(
+      onTap: _showLanguagePicker,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.language_rounded, color: Colors.white54, size: 20),
+            14.horizontalSpace,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppText('Medicine Info Language',
+                      fontSize: 14.sp,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500),
+                  3.verticalSpace,
+                  AppText(
+                    'Results shown in ${current.native} · Free for everyone',
+                    fontSize: 11.sp,
+                    color: Colors.white38,
+                  ),
+                ],
+              ),
+            ),
+            AppText(
+              current.native,
+              fontSize: 12.sp,
+              color: UIConstants.accentGreen,
+              fontWeight: FontWeight.w600,
+            ),
+            8.horizontalSpace,
+            const Icon(Icons.chevron_right_rounded,
+                color: Colors.white24, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showLanguagePicker() async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: const Color(0xFF1A1A1A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _LanguagePickerSheet(currentCode: Prefs.getLanguage()),
+    );
+    if (selected == null || !mounted) return;
+    await Prefs.setLanguage(selected);
+    setState(() {});
+    final lang = AppLanguage.fromCode(selected);
+    Utils.showMessage(
+      context,
+      selected == 'en'
+          ? 'Language set to English.'
+          : 'Language set to ${lang.native}. New searches will be in ${lang.name}.',
+      success: true,
     );
   }
 
@@ -438,6 +527,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildNotifPermissionTile() {
+    return GestureDetector(
+      onTap: () async {
+        await AppSettings.openAppSettings(type: AppSettingsType.notification);
+        _checkNotifPermission();
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+        decoration: BoxDecoration(
+          color: Colors.amber.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.notifications_off_rounded,
+                  color: Colors.amber, size: 18),
+            ),
+            12.horizontalSpace,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppText('Notifications Disabled',
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.amber),
+                  4.verticalSpace,
+                  AppText(
+                    'Reminders won\'t fire. Tap to enable notifications in Settings.',
+                    fontSize: 12.sp,
+                    color: Colors.amber.withValues(alpha: 0.7),
+                    lineHeight: 1.4,
+                    maxLines: 3,
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded,
+                color: Colors.amber, size: 14),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _sectionTitle(String title) {
     return Padding(
       padding: EdgeInsets.only(bottom: 8.h),
@@ -489,6 +630,108 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const Icon(Icons.chevron_right_rounded,
                 color: Colors.white24, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Language picker bottom sheet ──────────────────────
+
+class _LanguagePickerSheet extends StatelessWidget {
+  const _LanguagePickerSheet({required this.currentCode});
+  final String currentCode;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const Text(
+              'Medicine Info Language',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Choose the language for AI medicine results. Free for all users.',
+              style: TextStyle(color: Colors.white38, fontSize: 12),
+            ),
+            const SizedBox(height: 16),
+            ...AppLanguage.supported.map((lang) {
+              final isSelected = lang.code == currentCode;
+              return GestureDetector(
+                onTap: () => Navigator.pop(context, lang.code),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? UIConstants.accentGreen.withValues(alpha: 0.1)
+                        : Colors.white.withValues(alpha: 0.04),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected
+                          ? UIConstants.accentGreen.withValues(alpha: 0.4)
+                          : Colors.white.withValues(alpha: 0.06),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              lang.native,
+                              style: TextStyle(
+                                color: isSelected
+                                    ? UIConstants.accentGreen
+                                    : Colors.white,
+                                fontSize: 14,
+                                fontWeight: isSelected
+                                    ? FontWeight.w700
+                                    : FontWeight.w400,
+                              ),
+                            ),
+                            if (lang.code != 'en')
+                              Text(
+                                lang.name,
+                                style: const TextStyle(
+                                    color: Colors.white38, fontSize: 11),
+                              ),
+                          ],
+                        ),
+                      ),
+                      if (isSelected)
+                        const Icon(Icons.check_circle_rounded,
+                            color: UIConstants.accentGreen, size: 18),
+                    ],
+                  ),
+                ),
+              );
+            }),
+            const SizedBox(height: 8),
           ],
         ),
       ),

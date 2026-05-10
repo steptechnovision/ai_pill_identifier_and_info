@@ -8,11 +8,14 @@ import 'package:ai_medicine_tracker/helper/utils.dart';
 import 'package:ai_medicine_tracker/main.dart';
 import 'package:ai_medicine_tracker/repository/medicine_repository.dart';
 import 'package:ai_medicine_tracker/screens/add_reminder_screen.dart';
+import 'package:ai_medicine_tracker/helper/indian_brand_database.dart';
+import 'package:ai_medicine_tracker/screens/cannabis_interactions_screen.dart';
 import 'package:ai_medicine_tracker/screens/medicine_history_screen.dart';
 import 'package:ai_medicine_tracker/screens/paywall_screen.dart';
 import 'package:ai_medicine_tracker/screens/token_purchase_screen.dart';
 import 'package:ai_medicine_tracker/services/admob_service.dart';
 import 'package:ai_medicine_tracker/services/daily_limit_service.dart';
+import 'package:ai_medicine_tracker/services/pdf_export_service.dart';
 import 'package:ai_medicine_tracker/services/subscription_service.dart';
 import 'package:ai_medicine_tracker/widgets/app_text.dart';
 import 'package:ai_medicine_tracker/widgets/collapsible_card.dart';
@@ -40,6 +43,7 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
   List<String> _recentCanonicals = [];
   List<MedicineItem> _chipMedicines = [];
   List<MedicineItem> _filteredChips = [];
+  List<String> _brandSuggestions = [];
   bool _noMedicineFound = false;
 
   @override
@@ -100,11 +104,18 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
 
   void _onSearchTextChanged(String value) {
     final query = value.trim().toLowerCase();
+    final cachedNames =
+        _chipMedicines.map((m) => m.originalName.toLowerCase()).toSet();
     setState(() {
       _filteredChips = query.isEmpty
           ? _chipMedicines
           : _chipMedicines
               .where((item) => item.originalName.toLowerCase().contains(query))
+              .toList();
+      _brandSuggestions = query.isEmpty
+          ? []
+          : IndianBrandDatabase.matchingBrands(query)
+              .where((b) => !cachedNames.contains(b.toLowerCase()))
               .toList();
     });
   }
@@ -116,7 +127,8 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
       return;
     }
 
-    final isCacheHit = repo.cacheContains(name.toLowerCase());
+    final lang = Prefs.getLanguage();
+    final isCacheHit = repo.cacheContains(name.toLowerCase(), language: lang);
     final isPro = SubscriptionService.instance.isPro;
     final tokens = Prefs.getTokens();
 
@@ -149,7 +161,7 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
     });
 
     try {
-      final medicine = await repo.fetchMedicine(name);
+      final medicine = await repo.fetchMedicine(name, language: lang);
       _currentMedicine = medicine;
 
       if (!mounted) return;
@@ -392,6 +404,20 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
     ).then((_) => setState(() {}));
   }
 
+  Future<void> _exportPdf(MedicineItem item) async {
+    Utils.showLoading(message: 'Generating PDF…');
+    try {
+      await PdfExportService.exportMedicineInfo(item);
+    } catch (_) {
+      if (mounted) {
+        Utils.showMessage(context, 'Could not generate PDF. Try again.',
+            isError: true);
+      }
+    } finally {
+      await Utils.hideLoading();
+    }
+  }
+
   // ── Build ──────────────────────────────────────────────
 
   @override
@@ -426,6 +452,7 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
                   child: Column(
                     children: [
                       _buildMedicineChips(),
+                      _buildBrandSuggestions(),
                       ValueListenableBuilder(
                         valueListenable: _isLoading,
                         builder: (_, value, __) => value
@@ -779,6 +806,87 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
     );
   }
 
+  // ── Indian brand suggestions ──────────────────────────
+
+  Widget _buildBrandSuggestions() {
+    if (_brandSuggestions.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 8.h),
+          child: Row(
+            children: [
+              const Icon(Icons.local_pharmacy_rounded,
+                  size: 14, color: Colors.orangeAccent),
+              6.horizontalSpace,
+              AppText(
+                'Indian Brands',
+                color: Colors.orangeAccent,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          width: double.infinity,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            child: Row(
+              children: _brandSuggestions.map((brand) {
+                final generic = IndianBrandDatabase.resolveGeneric(brand) ?? '';
+                return Container(
+                  margin: EdgeInsets.only(right: 8.w),
+                  child: GestureDetector(
+                    onTap: () {
+                      FocusScope.of(context).unfocus();
+                      _controller.text = brand;
+                      _searchMedicine();
+                      _combineMedicines(resetFilter: true);
+                    },
+                    child: Container(
+                      padding: EdgeInsets.fromLTRB(12.w, 8.h, 12.w, 8.h),
+                      decoration: BoxDecoration(
+                        color: Colors.orangeAccent.withValues(alpha: 0.07),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: Colors.orangeAccent.withValues(alpha: 0.25)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.local_pharmacy_rounded,
+                              size: 12, color: Colors.orangeAccent),
+                          6.horizontalSpace,
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              AppText(brand,
+                                  fontSize: 13.sp, color: Colors.white),
+                              if (generic.isNotEmpty)
+                                AppText(generic,
+                                    fontSize: 10.sp,
+                                    color: Colors.white38),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+        10.verticalSpace,
+      ],
+    );
+  }
+
   // ── Recent searches ───────────────────────────────────
 
   Widget _buildMedicineChips() {
@@ -936,7 +1044,61 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
                 )
                 .toList(),
           ),
+          32.verticalSpace,
+          _buildCannabisFeatureCard(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCannabisFeatureCard() {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (_) => const CannabisInteractionsScreen()),
+      ),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+        decoration: BoxDecoration(
+          color: Colors.green.withValues(alpha: 0.07),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.green.withValues(alpha: 0.22)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.local_florist_rounded,
+                  color: Colors.green, size: 22),
+            ),
+            14.horizontalSpace,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppText('Cannabis & CBD Interactions',
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
+                  4.verticalSpace,
+                  AppText(
+                      'Check if your medicine interacts with Cannabis or CBD',
+                      fontSize: 11.sp,
+                      color: Colors.white54,
+                      lineHeight: 1.4,
+                      maxLines: 3),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded,
+                color: Colors.white24, size: 14),
+          ],
+        ),
       ),
     );
   }
@@ -1064,6 +1226,19 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
                   ],
                 ),
               ),
+              GestureDetector(
+                onTap: () => _exportPdf(item),
+                child: Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: Colors.blueAccent.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.picture_as_pdf_rounded,
+                      size: 16, color: Colors.blueAccent),
+                ),
+              ),
+              6.horizontalSpace,
               GestureDetector(
                 onTap: () => Navigator.push(
                   context,

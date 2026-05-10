@@ -1,9 +1,11 @@
 import 'package:ai_medicine_tracker/helper/app_colors.dart';
+import 'package:ai_medicine_tracker/helper/utils.dart';
 import 'package:ai_medicine_tracker/models/family_member.dart';
 import 'package:ai_medicine_tracker/models/user_medication.dart';
 import 'package:ai_medicine_tracker/screens/add_reminder_screen.dart';
 import 'package:ai_medicine_tracker/screens/drug_interaction_screen.dart';
 import 'package:ai_medicine_tracker/screens/family_members_screen.dart';
+import 'package:ai_medicine_tracker/services/pdf_export_service.dart';
 import 'package:ai_medicine_tracker/widgets/app_text.dart';
 import 'package:ai_medicine_tracker/widgets/native_ad_card.dart';
 import 'package:flutter/material.dart';
@@ -47,6 +49,27 @@ class _MyMedicationsScreenState extends State<MyMedicationsScreen> {
     });
   }
 
+  Future<void> _exportPdf() async {
+    Utils.showLoading(message: 'Generating PDF…');
+    try {
+      final label = _selectedMemberId == null
+          ? 'My'
+          : (_family
+                  .where((m) => m.id == _selectedMemberId)
+                  .firstOrNull
+                  ?.name ??
+              'Member');
+      await PdfExportService.exportMedicationsList(_meds, personLabel: label);
+    } catch (_) {
+      if (mounted) {
+        Utils.showMessage(context, 'Could not generate PDF. Try again.',
+            isError: true);
+      }
+    } finally {
+      await Utils.hideLoading();
+    }
+  }
+
   Future<void> _delete(String id) async {
     await UserMedication.remove(id);
     _load();
@@ -86,6 +109,13 @@ class _MyMedicationsScreenState extends State<MyMedicationsScreen> {
           color: Colors.white,
         ),
         actions: [
+          if (!_isAdding && _meds.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.picture_as_pdf_rounded,
+                  color: Colors.blueAccent),
+              tooltip: 'Export PDF',
+              onPressed: _exportPdf,
+            ),
           if (!_isAdding)
             IconButton(
               icon: const Icon(Icons.add_rounded, color: UIConstants.accentGreen),

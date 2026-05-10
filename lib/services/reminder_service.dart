@@ -73,6 +73,24 @@ class ReminderService {
   }
 
   // ------------------------------------------------
+  // PERMISSION CHECK
+  // ------------------------------------------------
+
+  Future<bool> areNotificationsEnabled() async {
+    try {
+      final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      if (androidPlugin != null) {
+        return await androidPlugin.areNotificationsEnabled() ?? true;
+      }
+      // iOS: no direct check without permission_handler, default to true
+      return true;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  // ------------------------------------------------
   // PUBLIC API
   // ------------------------------------------------
 

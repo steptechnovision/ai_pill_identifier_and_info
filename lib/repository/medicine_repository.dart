@@ -3,6 +3,7 @@ import 'dart:developer';
 
 import 'package:ai_medicine_tracker/data/default_medicines.dart';
 import 'package:ai_medicine_tracker/helper/constant.dart';
+import 'package:ai_medicine_tracker/helper/indian_brand_database.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -121,35 +122,52 @@ class MedicineRepository {
 
     final q = query.toLowerCase();
 
-    return _cache.values
+    final fromCache = _cache.values
         .where((m) => m.canonicalName.contains(q))
         .map((m) => m.originalName)
         .toList();
+
+    // Also suggest Indian brand names that match the query
+    final fromBrands = IndianBrandDatabase.matchingBrands(q)
+        .where((b) => !fromCache.any((c) => c.toLowerCase() == b.toLowerCase()))
+        .toList();
+
+    return [...fromCache, ...fromBrands];
   }
 
   /// ---------- Fetch ----------
-  Future<MedicineItem> fetchMedicine(String name) async {
+  /// [language] is an ISO 639-1 code ('en', 'hi', 'ta', …).
+  /// Non-English results are cached under a separate key so the English
+  /// cache is never evicted when the user switches languages.
+  Future<MedicineItem> fetchMedicine(String name,
+      {String language = 'en'}) async {
     await _ensureLoaded();
 
     final canonical = name.toLowerCase();
+    final cacheKey =
+        language == 'en' ? canonical : '${canonical}_$language';
 
-    // ✔ cache hit (case-insensitive)
-    if (_cache.containsKey(canonical)) {
-      log("📦 Cache hit: $name → ${_cache[canonical]!.originalName}");
+    // ✔ cache hit
+    if (_cache.containsKey(cacheKey)) {
+      log("📦 Cache hit: $name ($language) → ${_cache[cacheKey]!.originalName}");
 
-      final updated = _cache[canonical]!.copyWith(
+      final updated = _cache[cacheKey]!.copyWith(
         fromCache: true,
         lastUsedAt: DateTime.now().millisecondsSinceEpoch,
       );
 
-      _cache[canonical] = updated;
+      _cache[cacheKey] = updated;
       _saveCache(); // 🔥 async, no await
 
       return updated;
     }
 
     // 🌐 fetch from API
-    log("🌍 API Request for $name");
+    final genericName = IndianBrandDatabase.resolveGeneric(name);
+    if (genericName != null) {
+      log("🇮🇳 Indian brand detected: $name → $genericName");
+    }
+    log("🌍 API Request for $name (lang: $language)");
 
     final response = await _dio.post(
       Constants.openAiApi,
@@ -159,7 +177,8 @@ class MedicineRepository {
           "Content-Type": "application/json",
         },
       ),
-      data: Constants.getOpenAiRequestData(name),
+      data: Constants.getOpenAiRequestData(name,
+          language: language, genericName: genericName),
     );
 
     final raw = response.data["choices"][0]["message"]["content"];
@@ -184,7 +203,7 @@ class MedicineRepository {
       lastUsedAt: DateTime.now().millisecondsSinceEpoch,
     );
 
-    _cache[canonical] = item;
+    _cache[cacheKey] = item;
     await _saveCache();
 
     return item;
@@ -233,8 +252,9 @@ class MedicineRepository {
     await _ensureLoaded();
   }
 
-  bool cacheContains(String canonical) {
-    return _cache.containsKey(canonical);
+  bool cacheContains(String canonical, {String language = 'en'}) {
+    final key = language == 'en' ? canonical : '${canonical}_$language';
+    return _cache.containsKey(key);
   }
 
   /// Stores a camera-scan result into the search cache so future text searches

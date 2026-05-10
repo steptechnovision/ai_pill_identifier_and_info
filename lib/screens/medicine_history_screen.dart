@@ -2,6 +2,7 @@ import 'package:ai_medicine_tracker/helper/app_assets.dart';
 import 'package:ai_medicine_tracker/helper/app_colors.dart';
 import 'package:ai_medicine_tracker/helper/utils.dart';
 import 'package:ai_medicine_tracker/repository/medicine_repository.dart';
+import 'package:ai_medicine_tracker/services/pdf_export_service.dart';
 import 'package:ai_medicine_tracker/widgets/app_text.dart';
 import 'package:ai_medicine_tracker/widgets/collapsible_card.dart';
 import 'package:ai_medicine_tracker/widgets/custom_text_field.dart';
@@ -81,6 +82,20 @@ class _MedicineHistoryScreenState extends State<MedicineHistoryScreen> {
     if (diff.inDays == 1) return 'Yesterday';
     if (diff.inDays < 7) return '${diff.inDays}d ago';
     return '${date.day}/${date.month}/${date.year}';
+  }
+
+  Future<void> _exportPdf(MedicineItem item) async {
+    Utils.showLoading(message: 'Generating PDF…');
+    try {
+      await PdfExportService.exportMedicineInfo(item);
+    } catch (_) {
+      if (mounted) {
+        Utils.showMessage(context, 'Could not generate PDF. Try again.',
+            isError: true);
+      }
+    } finally {
+      await Utils.hideLoading();
+    }
   }
 
   Future<void> _deleteFromHistory(MedicineItem item) async {
@@ -586,6 +601,19 @@ class _MedicineHistoryScreenState extends State<MedicineHistoryScreen> {
                     ],
                   ),
                 ),
+                GestureDetector(
+                  onTap: () => _exportPdf(item),
+                  child: Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: Colors.blueAccent.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.picture_as_pdf_rounded,
+                        size: 15, color: Colors.blueAccent),
+                  ),
+                ),
+                8.horizontalSpace,
                 GestureDetector(
                   onTap: () async {
                     if (await _confirmDelete(item)) {

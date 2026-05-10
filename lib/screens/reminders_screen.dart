@@ -5,6 +5,7 @@ import 'package:ai_medicine_tracker/models/family_member.dart';
 import 'package:ai_medicine_tracker/services/adherence_service.dart';
 import 'package:ai_medicine_tracker/widgets/app_text.dart';
 import 'package:ai_medicine_tracker/widgets/native_ad_card.dart';
+import 'package:app_settings/app_settings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -21,6 +22,7 @@ class RemindersScreen extends StatefulWidget {
 
 class _RemindersScreenState extends State<RemindersScreen> {
   bool _isLoading = true;
+  bool _notifGranted = true;
   List<MedicineReminder> _reminders = [];
   List<FamilyMember> _family = [];
   String? _selectedMemberId; // null = "Me"
@@ -31,9 +33,15 @@ class _RemindersScreenState extends State<RemindersScreen> {
   void initState() {
     super.initState();
     _load();
+    _checkNotifPermission();
     _changeSub = ReminderService.instance.onChanged.listen((_) => _load());
     _adherenceSub =
         AdherenceService.instance.onChanged.listen((_) => setState(() {}));
+  }
+
+  Future<void> _checkNotifPermission() async {
+    final granted = await ReminderService.instance.areNotificationsEnabled();
+    if (mounted) setState(() => _notifGranted = granted);
   }
 
   @override
@@ -169,6 +177,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
           child: Column(
             children: [
               _buildHeader(activeCount),
+              if (!_notifGranted) _buildNotifPermissionBanner(),
               if (_family.isNotEmpty) _buildPersonSelector(),
               if (!_isLoading && filtered.isNotEmpty) ...[
                 _buildStreakBanner(),
@@ -189,6 +198,45 @@ class _RemindersScreenState extends State<RemindersScreen> {
         ),
       ),
       floatingActionButton: _buildFab(),
+    );
+  }
+
+  // ── Notification permission banner ────────────────────
+
+  Widget _buildNotifPermissionBanner() {
+    return GestureDetector(
+      onTap: () async {
+        await AppSettings.openAppSettings(type: AppSettingsType.notification);
+        _checkNotifPermission();
+      },
+      child: Container(
+        margin: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 0),
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+        decoration: BoxDecoration(
+          color: Colors.amber.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.amber.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.notifications_off_rounded,
+                color: Colors.amber, size: 18),
+            10.horizontalSpace,
+            Expanded(
+              child: AppText(
+                'Notifications are disabled. Reminders won\'t fire until you enable them. Tap to open Settings.',
+                fontSize: 12.sp,
+                color: Colors.amber,
+                lineHeight: 1.4,
+                maxLines: 4,
+              ),
+            ),
+            8.horizontalSpace,
+            const Icon(Icons.arrow_forward_ios_rounded,
+                color: Colors.amber, size: 12),
+          ],
+        ),
+      ),
     );
   }
 

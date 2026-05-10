@@ -23,6 +23,14 @@ class Prefs {
   static const String keyProProductId = 'pro_product_id';
   static const String keySimulatePro = 'simulate_pro_mode';
 
+  // ── language ──────────────────────────────────────────
+  static const String keyLanguage = 'pref_language';
+
+  static String getLanguage() => prefs.getString(keyLanguage) ?? 'en';
+
+  static Future<void> setLanguage(String code) async =>
+      prefs.setString(keyLanguage, code);
+
   // ── in-app review ─────────────────────────────────────
   static const String keyReviewSearchCount = 'review_search_count';
   static const String keyReviewAsked = 'review_asked';

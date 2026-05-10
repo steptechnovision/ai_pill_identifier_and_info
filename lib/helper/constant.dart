@@ -80,7 +80,14 @@ class Constants {
   }
 
   // ── OpenAI: medicine info prompt ─────────────────────
-  static Map<String, dynamic> getOpenAiRequestData(String medicineName) {
+  static Map<String, dynamic> getOpenAiRequestData(String medicineName,
+      {String language = 'en', String? genericName}) {
+    final langInstruction = language == 'en'
+        ? ''
+        : '\n- Language: Respond in the language with ISO 639-1 code "$language". Keep ALL medicine names, chemical/scientific terms, drug names, and numeric dosages in English. Translate only the explanatory sentences.';
+    final brandInstruction = genericName != null
+        ? '"$medicineName" is an Indian brand name for $genericName. Use "$medicineName ($genericName)" as the medicine name throughout your response.'
+        : '"$medicineName"';
     return {
       "model": openAiModel,
       "messages": [
@@ -99,13 +106,48 @@ Your response must be ONLY valid JSON with these exact keys:
 - "FAQs" format: "Q: ... A: ..." in each string.
 - "WhoCanTake": cover adults, elderly, children, pregnancy, renal/hepatic conditions.
 - "Dosage": include standard adult dose, timing, frequency, maximum daily dose, form.
-- Never return markdown, code fences, or text outside the JSON — ONLY valid JSON.
+- Never return markdown, code fences, or text outside the JSON — ONLY valid JSON.$langInstruction
 """,
         },
         {
           "role": "user",
           "content":
-              "Provide comprehensive, detailed medical information about \"$medicineName\" with at least 5 informative points per section.",
+              "Provide comprehensive, detailed medical information about $brandInstruction with at least 5 informative points per section.",
+        },
+      ],
+      "response_format": {"type": "json_object"},
+    };
+  }
+
+  // ── OpenAI: cannabis/CBD interaction prompt ──────────
+  static Map<String, dynamic> getCannabisInteractionRequest(String medicine) {
+    return {
+      "model": openAiModel,
+      "messages": [
+        {
+          "role": "system",
+          "content": """
+You are a clinical pharmacist specialising in cannabis and CBD drug interactions.
+Return ONLY valid JSON with this exact structure:
+{
+  "risk_level": "None|Minor|Moderate|Major",
+  "thc_interactions": ["string — specific interaction with THC/Cannabis (1-2 sentences each)", ...],
+  "cbd_interactions": ["string — specific interaction with CBD/Cannabidiol (1-2 sentences each)", ...],
+  "mechanism": ["string — how the interaction works pharmacologically (1-2 sentences each)", ...],
+  "recommendations": ["string — what the patient should do (1-2 sentences each)", ...],
+  "summary": "string — plain English overall summary (2-3 sentences)"
+}
+Rules:
+- Each array must have 3 to 5 entries.
+- Use plain, patient-friendly language — avoid excessive jargon.
+- If no significant interaction is known, set risk_level to "None" and explain why it is considered safe.
+- Always include ALL keys. Never return markdown or text outside the JSON.
+""",
+        },
+        {
+          "role": "user",
+          "content":
+              "What are the interactions between \"$medicine\" and Cannabis (THC) or CBD (Cannabidiol)?",
         },
       ],
       "response_format": {"type": "json_object"},
