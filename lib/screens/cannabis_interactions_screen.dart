@@ -27,7 +27,6 @@ class _CannabisInteractionsScreenState
   final _ctrl = TextEditingController();
   _CannabisResult? _result;
   bool _loading = false;
-  static int _checkCount = 0;
 
   @override
   void dispose() {
@@ -82,10 +81,7 @@ class _CannabisInteractionsScreenState
 
       await DailyLimitService.instance.record(ApiFeature.interaction);
 
-      _checkCount++;
-      if (_checkCount % 3 == 0) {
-        AdmobService.instance.onNewSearch();
-      }
+      AdmobService.instance.onNewSearch();
     } on DioException catch (e, st) {
       log('❌ Cannabis check error: ${e.response?.data ?? e.message}\n$st');
       if (mounted) {

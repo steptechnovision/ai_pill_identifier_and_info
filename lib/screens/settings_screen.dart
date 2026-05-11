@@ -25,7 +25,8 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends State<SettingsScreen>
+    with WidgetsBindingObserver {
   bool get _isPro => SubscriptionService.instance.isPro;
   List<FamilyMember> _family = [];
   bool _notifGranted = true;
@@ -33,9 +34,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     SubscriptionService.instance.proChangeNotifier.addListener(_onProChanged);
     _loadFamily();
     _checkNotifPermission();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _checkNotifPermission();
   }
 
   Future<void> _checkNotifPermission() async {
@@ -45,6 +52,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     SubscriptionService.instance.proChangeNotifier.removeListener(_onProChanged);
     super.dispose();
   }

@@ -405,6 +405,8 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
   }
 
   Future<void> _exportPdf(MedicineItem item) async {
+    await AdmobService.instance.showInterstitialAndWait();
+    if (!mounted) return;
     Utils.showLoading(message: 'Generating PDF…');
     try {
       await PdfExportService.exportMedicineInfo(item);

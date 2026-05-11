@@ -20,7 +20,8 @@ class RemindersScreen extends StatefulWidget {
   State<RemindersScreen> createState() => _RemindersScreenState();
 }
 
-class _RemindersScreenState extends State<RemindersScreen> {
+class _RemindersScreenState extends State<RemindersScreen>
+    with WidgetsBindingObserver {
   bool _isLoading = true;
   bool _notifGranted = true;
   List<MedicineReminder> _reminders = [];
@@ -32,11 +33,17 @@ class _RemindersScreenState extends State<RemindersScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
     _checkNotifPermission();
     _changeSub = ReminderService.instance.onChanged.listen((_) => _load());
     _adherenceSub =
         AdherenceService.instance.onChanged.listen((_) => setState(() {}));
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _checkNotifPermission();
   }
 
   Future<void> _checkNotifPermission() async {
@@ -46,6 +53,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _changeSub?.cancel();
     _adherenceSub?.cancel();
     super.dispose();

@@ -23,6 +23,15 @@ class Prefs {
   static const String keyProProductId = 'pro_product_id';
   static const String keySimulatePro = 'simulate_pro_mode';
 
+  // ── ad action counter (persists across restarts) ─────
+  static const String keyAdActionCount = 'ad_action_count';
+  static const String keyAdNextThreshold = 'ad_next_threshold';
+
+  static int getAdActionCount() => prefs.getInt(keyAdActionCount) ?? 0;
+  static Future<void> setAdActionCount(int v) async => prefs.setInt(keyAdActionCount, v);
+  static int getAdNextThreshold() => prefs.getInt(keyAdNextThreshold) ?? 0;
+  static Future<void> setAdNextThreshold(int v) async => prefs.setInt(keyAdNextThreshold, v);
+
   // ── language ──────────────────────────────────────────
   static const String keyLanguage = 'pref_language';
 

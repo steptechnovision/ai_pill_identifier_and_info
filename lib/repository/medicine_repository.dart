@@ -94,6 +94,7 @@ class MedicineRepository {
     // Inject default medicines only once
     final injected = prefs.getBool("default_injected") ?? false;
     if (!injected) {
+      final installTs = DateTime.now().millisecondsSinceEpoch;
       for (final entry in DefaultMedicinesData.defaultMedicines.entries) {
         final name = entry.key;
         final canonical = name.toLowerCase();
@@ -102,7 +103,7 @@ class MedicineRepository {
           originalName: name,
           canonicalName: canonical,
           sections: entry.value,
-          lastUsedAt: 0,
+          lastUsedAt: installTs,
         );
 
         _cache[canonical] = item;

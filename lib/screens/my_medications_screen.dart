@@ -5,6 +5,7 @@ import 'package:ai_medicine_tracker/models/user_medication.dart';
 import 'package:ai_medicine_tracker/screens/add_reminder_screen.dart';
 import 'package:ai_medicine_tracker/screens/drug_interaction_screen.dart';
 import 'package:ai_medicine_tracker/screens/family_members_screen.dart';
+import 'package:ai_medicine_tracker/services/admob_service.dart';
 import 'package:ai_medicine_tracker/services/pdf_export_service.dart';
 import 'package:ai_medicine_tracker/widgets/app_text.dart';
 import 'package:ai_medicine_tracker/widgets/native_ad_card.dart';
@@ -50,6 +51,8 @@ class _MyMedicationsScreenState extends State<MyMedicationsScreen> {
   }
 
   Future<void> _exportPdf() async {
+    await AdmobService.instance.showInterstitialAndWait();
+    if (!mounted) return;
     Utils.showLoading(message: 'Generating PDF…');
     try {
       final label = _selectedMemberId == null

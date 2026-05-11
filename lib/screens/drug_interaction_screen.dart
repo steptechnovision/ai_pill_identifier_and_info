@@ -32,7 +32,6 @@ class _DrugInteractionScreenState extends State<DrugInteractionScreen> {
   DrugInteractionResult? _result;
   bool _loading = false;
   bool _includeSupplements = false;
-  static int _checkCount = 0;
 
   @override
   void initState() {
@@ -122,11 +121,7 @@ class _DrugInteractionScreenState extends State<DrugInteractionScreen> {
       await DailyLimitService.instance.record(ApiFeature.interaction);
       if (mounted) setState(() {});
 
-      // Show interstitial every 3 checks
-      _checkCount++;
-      if (_checkCount % 3 == 0) {
-        AdmobService.instance.onNewSearch();
-      }
+      AdmobService.instance.onNewSearch();
     } on DioException catch (e, st) {
       log('❌ Interaction API error: ${e.response?.data ?? e.message}\n$st');
       if (mounted) {

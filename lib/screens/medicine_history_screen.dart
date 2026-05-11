@@ -2,6 +2,7 @@ import 'package:ai_medicine_tracker/helper/app_assets.dart';
 import 'package:ai_medicine_tracker/helper/app_colors.dart';
 import 'package:ai_medicine_tracker/helper/utils.dart';
 import 'package:ai_medicine_tracker/repository/medicine_repository.dart';
+import 'package:ai_medicine_tracker/services/admob_service.dart';
 import 'package:ai_medicine_tracker/services/pdf_export_service.dart';
 import 'package:ai_medicine_tracker/widgets/app_text.dart';
 import 'package:ai_medicine_tracker/widgets/collapsible_card.dart';
@@ -61,6 +62,7 @@ class _MedicineHistoryScreenState extends State<MedicineHistoryScreen> {
   }
 
   String _groupTitle(int timestamp) {
+    if (timestamp == 0) return 'Today';
     final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
     final now = DateTime.now();
     if (date.year == now.year &&
@@ -73,6 +75,7 @@ class _MedicineHistoryScreenState extends State<MedicineHistoryScreen> {
   }
 
   String _relativeDate(int timestamp) {
+    if (timestamp == 0) return 'Today';
     final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
     final now = DateTime.now();
     final diff = now.difference(date);
@@ -85,6 +88,8 @@ class _MedicineHistoryScreenState extends State<MedicineHistoryScreen> {
   }
 
   Future<void> _exportPdf(MedicineItem item) async {
+    await AdmobService.instance.showInterstitialAndWait();
+    if (!mounted) return;
     Utils.showLoading(message: 'Generating PDF…');
     try {
       await PdfExportService.exportMedicineInfo(item);
