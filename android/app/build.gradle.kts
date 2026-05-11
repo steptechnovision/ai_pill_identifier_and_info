@@ -36,8 +36,8 @@ android {
         applicationId = "com.steptechnovision.aipillidentifier"
         minSdk = flutter.minSdkVersion
         targetSdk = 36
-        versionCode = 4
-        versionName = "1.0.4"
+        versionCode = 5
+        versionName = "1.0.5"
         multiDexEnabled = true
     }
 
