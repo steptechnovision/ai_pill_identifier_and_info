@@ -50,9 +50,6 @@ class Constants {
   static String get admobInterstitialAdUnitId => kDebugMode
       ? 'ca-app-pub-3940256099942544/1033173712'
       : 'ca-app-pub-5003311732017255/3726914635';
-  static String get admobRewardedAdUnitId => kDebugMode
-      ? 'ca-app-pub-3940256099942544/5224354917'
-      : 'ca-app-pub-5003311732017255/1100751298';
   static String get admobNativeAdUnitId => kDebugMode
       ? 'ca-app-pub-3940256099942544/2247696110'
       : 'ca-app-pub-5003311732017255/9652204909';

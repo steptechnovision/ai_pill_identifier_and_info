@@ -8,6 +8,7 @@ import 'package:ai_medicine_tracker/helper/prefs.dart';
 import 'package:ai_medicine_tracker/helper/utils.dart';
 import 'package:ai_medicine_tracker/repository/medicine_repository.dart';
 import 'package:ai_medicine_tracker/screens/paywall_screen.dart';
+import 'package:ai_medicine_tracker/screens/token_purchase_screen.dart';
 import 'package:ai_medicine_tracker/widgets/app_text.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -38,7 +39,7 @@ class _CameraScanScreenState extends State<CameraScanScreen> {
     // 5 tokens per scan for everyone — protects against API cost losses
     final tokens = Prefs.getTokens();
     if (tokens < _tokensPerScan) {
-      if (mounted) _showTokensNeededDialog();
+      if (mounted) _showCreditsDialog();
       return;
     }
 
@@ -70,45 +71,118 @@ class _CameraScanScreenState extends State<CameraScanScreen> {
     }
   }
 
-  void _showTokensNeededDialog() {
+  void _showCreditsDialog() {
     final current = Prefs.getTokens();
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: AppText(
-          'Need $_tokensPerScan Tokens',
-          fontSize: 16.sp,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
-        content: AppText(
-          'Camera scan costs $_tokensPerScan tokens per scan. You have $current token${current == 1 ? '' : 's'}. Watch an ad to earn more or buy a token pack.',
-          fontSize: 13.sp,
-          color: Colors.white54,
-          lineHeight: 1.5,
-          maxLines: 5,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const AppText('Cancel', color: Colors.white38),
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A1A),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.6),
+                blurRadius: 40,
+                spreadRadius: 0,
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const PaywallScreen()));
-              setState(() {});
-            },
-            child: const AppText('Upgrade Pro',
-                color: UIConstants.accentGreen,
-                fontWeight: FontWeight.bold),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.amber.withValues(alpha: 0.2)),
+                ),
+                child: const Icon(Icons.toll_rounded, size: 36, color: Colors.amber),
+              ),
+              20.verticalSpace,
+              AppText(
+                'Need More Credits',
+                textAlign: TextAlign.center,
+                color: Colors.white,
+                fontSize: 20.sp,
+                fontWeight: FontWeight.bold,
+              ),
+              12.verticalSpace,
+              AppText(
+                'Camera scan costs $_tokensPerScan credits per scan. You have $current credit${current == 1 ? '' : 's'}.\nUpgrade to Pro for monthly credits, or buy a pack to scan now.',
+                textAlign: TextAlign.center,
+                color: Colors.white54,
+                fontSize: 13.sp,
+                lineHeight: 1.55,
+                maxLines: 5,
+              ),
+              24.verticalSpace,
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const PaywallScreen()),
+                    ).then((_) => setState(() {}));
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: UIConstants.accentGreen,
+                    foregroundColor: Colors.black,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  icon: const Icon(Icons.stars_rounded, size: 18),
+                  label: AppText('Upgrade to Pro', fontSize: 14.sp, fontWeight: FontWeight.bold),
+                ),
+              ),
+              10.verticalSpace,
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: OutlinedButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _openPurchaseScreen();
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.amber,
+                    side: const BorderSide(color: Colors.amber),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: AppText('Buy Credits', fontSize: 14.sp, color: Colors.amber, fontWeight: FontWeight.w600),
+                ),
+              ),
+              10.verticalSpace,
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: AppText('Maybe later', fontSize: 12.sp, color: Colors.white38),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
+  }
+
+  void _openPurchaseScreen() async {
+    final online = await Utils.checkInternetWithLoading();
+    if (!online) {
+      if (!mounted) return;
+      Utils.showMessage(context, 'No internet connection.', isError: true);
+      return;
+    }
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const PurchaseTokenScreen()),
+    ).then((_) => setState(() {}));
   }
 
   Future<void> _maybeAskForReview() async {
@@ -283,33 +357,40 @@ class _CameraScanScreenState extends State<CameraScanScreen> {
                   color: Colors.white,
                 ),
                 AppText(
-                  '$_tokensPerScan tokens per scan · Everyone',
+                  '$_tokensPerScan credits per scan · Tap balance to buy',
                   fontSize: 11.sp,
                   color: Colors.white38,
                 ),
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: (enough ? Colors.amber : Colors.redAccent)
-                  .withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                  color: (enough ? Colors.amber : Colors.redAccent)
-                      .withValues(alpha: 0.35)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.toll_rounded,
-                    color: enough ? Colors.amber : Colors.redAccent, size: 12),
-                5.horizontalSpace,
-                AppText('$tokens tokens',
-                    fontSize: 11.sp,
-                    color: enough ? Colors.amber : Colors.redAccent),
-              ],
+          GestureDetector(
+            onTap: _showCreditsDialog,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: (enough ? Colors.amber : Colors.redAccent)
+                    .withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                    color: (enough ? Colors.amber : Colors.redAccent)
+                        .withValues(alpha: 0.35)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.toll_rounded,
+                      color: enough ? Colors.amber : Colors.redAccent, size: 12),
+                  5.horizontalSpace,
+                  AppText('$tokens credits',
+                      fontSize: 11.sp,
+                      color: enough ? Colors.amber : Colors.redAccent),
+                  4.horizontalSpace,
+                  Icon(Icons.add_circle_outline_rounded,
+                      color: (enough ? Colors.amber : Colors.redAccent).withValues(alpha: 0.7),
+                      size: 12),
+                ],
+              ),
             ),
           ),
         ],

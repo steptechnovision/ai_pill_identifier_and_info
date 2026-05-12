@@ -792,7 +792,7 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
               child: AppText(
                 remaining > 0
                     ? '$remaining free search${remaining == 1 ? '' : 'es'} left today'
-                    : 'Daily limit reached · upgrade plan here',
+                    : 'Daily limit reached · upgrade plan now',
                 fontSize: 11.sp,
                 color: color,
               ),

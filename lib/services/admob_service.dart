@@ -12,10 +12,6 @@ class AdmobService {
   AdmobService._();
   static final AdmobService instance = AdmobService._();
 
-  // ── Rewarded ──────────────────────────────────────────
-  RewardedAd? _rewardedAd;
-  bool _rewardedLoading = false;
-
   // ── Interstitial ──────────────────────────────────────
   InterstitialAd? _interstitialAd;
   bool _interstitialLoading = false;
@@ -41,7 +37,6 @@ class AdmobService {
   Future<void> init() async {
     await MobileAds.instance.initialize();
     await _loadAdCounters();
-    _loadRewarded();
     _loadInterstitial();
     _loadAppOpen();
   }
@@ -87,59 +82,6 @@ class AdmobService {
   }
 
   bool get _adsEnabled => !Prefs.isPro() && !Prefs.isSimulatePro();
-
-  // ── Rewarded ──────────────────────────────────────────
-  void _loadRewarded() {
-    if (_rewardedLoading) return;
-    _rewardedLoading = true;
-    RewardedAd.load(
-      adUnitId: Constants.admobRewardedAdUnitId,
-      request: const AdRequest(),
-      rewardedAdLoadCallback: RewardedAdLoadCallback(
-        onAdLoaded: (ad) {
-          _rewardedAd = ad;
-          _rewardedLoading = false;
-          log('✅ Rewarded ad loaded');
-        },
-        onAdFailedToLoad: (error) {
-          _rewardedAd = null;
-          _rewardedLoading = false;
-          log('❌ Rewarded ad failed: ${error.message}');
-        },
-      ),
-    );
-  }
-
-  bool get isReady => _rewardedAd != null;
-
-  /// Returns true if the user earned the reward.
-  Future<bool> showRewarded() async {
-    if (_rewardedAd == null) {
-      _loadRewarded();
-      return false;
-    }
-    final completer = Completer<bool>();
-    _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
-      onAdDismissedFullScreenContent: (ad) {
-        ad.dispose();
-        _rewardedAd = null;
-        _loadRewarded();
-        if (!completer.isCompleted) completer.complete(false);
-      },
-      onAdFailedToShowFullScreenContent: (ad, error) {
-        ad.dispose();
-        _rewardedAd = null;
-        _loadRewarded();
-        if (!completer.isCompleted) completer.complete(false);
-      },
-    );
-    await _rewardedAd!.show(
-      onUserEarnedReward: (_, __) {
-        if (!completer.isCompleted) completer.complete(true);
-      },
-    );
-    return completer.future;
-  }
 
   // ── Interstitial ──────────────────────────────────────
   void _loadInterstitial() {
