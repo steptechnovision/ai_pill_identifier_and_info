@@ -22,6 +22,7 @@ class ReminderService {
   bool _initialized = false;
 
   final _changesController = StreamController<void>.broadcast();
+
   Stream<void> get onChanged => _changesController.stream;
 
   static const String _storageKey = 'medicine_reminders';
@@ -35,7 +36,8 @@ class ReminderService {
     // Timezone init
     try {
       tz.initializeTimeZones();
-      final TimezoneInfo timeZoneName = await FlutterTimezone.getLocalTimezone();
+      final TimezoneInfo timeZoneName =
+          await FlutterTimezone.getLocalTimezone();
       tz.setLocalLocation(tz.getLocation(timeZoneName.identifier));
 
       const androidInit = AndroidInitializationSettings('app_icon');
@@ -46,10 +48,12 @@ class ReminderService {
         iOS: iosInit,
       );
 
-      await _plugin.initialize(initSettings);
+      await _plugin.initialize(settings: initSettings);
 
-      final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
+      final androidPlugin = _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
 
       // Request POST_NOTIFICATIONS permission (Android 13+)
       await androidPlugin?.requestNotificationsPermission();
@@ -60,7 +64,8 @@ class ReminderService {
 
       await _plugin
           .resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin>()
+            IOSFlutterLocalNotificationsPlugin
+          >()
           ?.requestPermissions(alert: true, badge: true, sound: true);
     } catch (e) {
       log('ReminderService init error: $e');
@@ -78,8 +83,10 @@ class ReminderService {
 
   Future<bool> areNotificationsEnabled() async {
     try {
-      final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
+      final androidPlugin = _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
       if (androidPlugin != null) {
         return await androidPlugin.areNotificationsEnabled() ?? true;
       }
@@ -259,12 +266,12 @@ class ReminderService {
       // exact-alarm permission has not been granted on Android 12+.
       try {
         await _plugin.zonedSchedule(
-          id,
-          'Medicine Reminder 💊',
-          'Time to take: ${reminder.medicineName}',
-          scheduled,
-          details,
+          id: id,
+          scheduledDate: scheduled,
+          notificationDetails: details,
           androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          title: 'Medicine Reminder 💊',
+          body: 'Time to take: ${reminder.medicineName}',
           payload: reminder.id,
           matchDateTimeComponents: reminder.repeatDaily
               ? DateTimeComponents.time
@@ -272,12 +279,12 @@ class ReminderService {
         );
       } catch (_) {
         await _plugin.zonedSchedule(
-          id,
-          'Medicine Reminder 💊',
-          'Time to take: ${reminder.medicineName}',
-          scheduled,
-          details,
+          id: id,
+          scheduledDate: scheduled,
+          notificationDetails: details,
           androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          title: 'Medicine Reminder 💊',
+          body: 'Time to take: ${reminder.medicineName}',
           payload: reminder.id,
           matchDateTimeComponents: reminder.repeatDaily
               ? DateTimeComponents.time
@@ -291,7 +298,7 @@ class ReminderService {
 
   Future<void> _cancel(MedicineReminder reminder) async {
     final id = _notifIdFor(reminder);
-    await _plugin.cancel(id);
+    await _plugin.cancel(id: id);
   }
 
   Future<void> _rescheduleAllEnabled() async {
@@ -329,7 +336,13 @@ class ReminderService {
 
     // 3. Show instantly
     try {
-      await _plugin.show(id, title, body, details, payload: payload);
+      await _plugin.show(
+        id: id,
+        title: title,
+        body: body,
+        notificationDetails: details,
+        payload: payload,
+      );
     } catch (e) {
       log('Error showing remote notification: $e');
     }
