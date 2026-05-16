@@ -2,9 +2,8 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:ai_medicine_tracker/data/default_medicines.dart';
-import 'package:ai_medicine_tracker/helper/constant.dart';
 import 'package:ai_medicine_tracker/helper/indian_brand_database.dart';
-import 'package:dio/dio.dart';
+import 'package:ai_medicine_tracker/services/ai_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MedicineItem {
@@ -65,8 +64,6 @@ class MedicineRepository {
   factory MedicineRepository() => _instance;
 
   MedicineRepository._internal();
-
-  final Dio _dio = Dio();
 
   /// key = canonicalName (lowercase)
   final Map<String, MedicineItem> _cache = {};
@@ -163,27 +160,18 @@ class MedicineRepository {
       return updated;
     }
 
-    // 🌐 fetch from API
+    // 🌐 fetch via Firebase Function (API key stays on server)
     final genericName = IndianBrandDatabase.resolveGeneric(name);
     if (genericName != null) {
       log("🇮🇳 Indian brand detected: $name → $genericName");
     }
-    log("🌍 API Request for $name (lang: $language)");
+    log("🌍 Function request for $name (lang: $language)");
 
-    final response = await _dio.post(
-      Constants.openAiApi,
-      options: Options(
-        headers: {
-          "Authorization": Constants.openAiAuthorizationKey,
-          "Content-Type": "application/json",
-        },
-      ),
-      data: Constants.getOpenAiRequestData(name,
-          language: language, genericName: genericName),
+    final parsed = await AIService.instance.searchMedicine(
+      name,
+      language: language,
+      genericName: genericName,
     );
-
-    final raw = response.data["choices"][0]["message"]["content"];
-    final parsed = jsonDecode(raw) as Map<String, dynamic>;
 
     // ---- VALIDATE RESPONSE ----
     if (_isInvalidResponse(parsed)) {

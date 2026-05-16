@@ -8,8 +8,9 @@ import 'package:ai_medicine_tracker/services/reminder_service.dart';
 import 'package:ai_medicine_tracker/services/remote_config_service.dart';
 import 'package:ai_medicine_tracker/services/subscription_service.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 
@@ -17,12 +18,20 @@ bool isForScreenShots = false;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env");
   await Prefs.initialize();
 
   await ReminderService.instance.init();
   await AdherenceService.instance.init();
   await FirebaseService.init();
+
+  // Activate App Check — blocks any caller that is not your real signed app.
+  // Debug mode uses a debug token (register it in Firebase Console → App Check).
+  // Release mode uses Play Integrity (Android) / App Attest (iOS).
+  await FirebaseAppCheck.instance.activate(
+    androidProvider: kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+    appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.appAttest,
+  );
+
   await RemoteConfigService.init();
 
   // Init monetization services

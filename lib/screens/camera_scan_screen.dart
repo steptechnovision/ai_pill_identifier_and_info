@@ -3,14 +3,14 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:ai_medicine_tracker/helper/app_colors.dart';
-import 'package:ai_medicine_tracker/helper/constant.dart';
 import 'package:ai_medicine_tracker/helper/prefs.dart';
 import 'package:ai_medicine_tracker/helper/utils.dart';
 import 'package:ai_medicine_tracker/repository/medicine_repository.dart';
 import 'package:ai_medicine_tracker/screens/paywall_screen.dart';
 import 'package:ai_medicine_tracker/screens/token_purchase_screen.dart';
+import 'package:ai_medicine_tracker/services/ai_service.dart';
 import 'package:ai_medicine_tracker/widgets/app_text.dart';
-import 'package:dio/dio.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
@@ -214,29 +214,7 @@ class _CameraScanScreenState extends State<CameraScanScreen> {
       final bytes = await _image!.readAsBytes();
       final base64Image = base64Encode(bytes);
 
-      final dio = Dio();
-      final response = await dio.post(
-        Constants.openAiApi,
-        options: Options(
-          headers: {
-            'Authorization': Constants.openAiAuthorizationKey,
-            'Content-Type': 'application/json',
-          },
-          receiveTimeout: const Duration(seconds: 60),
-          sendTimeout: const Duration(seconds: 30),
-        ),
-        data: Constants.getCameraScanRequest(base64Image),
-      );
-
-      var content =
-          response.data['choices'][0]['message']['content'] as String;
-      // Strip markdown code fences if present
-      content = content
-          .replaceAll('```json', '')
-          .replaceAll('```', '')
-          .trim();
-
-      final json = jsonDecode(content) as Map<String, dynamic>;
+      final json = await AIService.instance.scanPill(base64Image);
 
       final detectedName = json['medicineName'] as String? ?? 'Unknown';
       if (detectedName != 'Unknown') {
@@ -249,15 +227,10 @@ class _CameraScanScreenState extends State<CameraScanScreen> {
           _result = json;
         });
       }
-    } on DioException catch (e, st) {
-      log('❌ Camera scan API error: ${e.response?.data ?? e.message}\n$st');
+    } on FirebaseFunctionsException catch (e, st) {
+      log('❌ Camera scan function error: ${e.code} ${e.message}\n$st');
       if (mounted) {
-        final msg = e.response?.statusCode == 401
-            ? 'API key invalid. Please contact support.'
-            : e.response?.statusCode == 429
-                ? 'Too many requests. Please wait a moment.'
-                : 'Analysis failed. Please try again with a clearer photo.';
-        Utils.showMessage(context, msg, isError: true);
+        Utils.showMessage(context, AIService.friendlyError(e), isError: true);
       }
     } catch (e, st) {
       log('❌ Camera scan failed: $e\n$st');

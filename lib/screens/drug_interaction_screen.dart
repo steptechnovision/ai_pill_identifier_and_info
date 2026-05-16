@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:developer';
 
 import 'package:ai_medicine_tracker/helper/app_colors.dart';
@@ -8,12 +7,13 @@ import 'package:ai_medicine_tracker/models/drug_interaction.dart';
 import 'package:ai_medicine_tracker/models/user_medication.dart';
 import 'package:ai_medicine_tracker/screens/paywall_screen.dart';
 import 'package:ai_medicine_tracker/services/admob_service.dart';
+import 'package:ai_medicine_tracker/services/ai_service.dart';
 import 'package:ai_medicine_tracker/services/daily_limit_service.dart';
 import 'package:ai_medicine_tracker/services/subscription_service.dart';
 import 'package:ai_medicine_tracker/widgets/app_text.dart';
 import 'package:ai_medicine_tracker/widgets/banner_ad_widget.dart';
 import 'package:ai_medicine_tracker/widgets/native_ad_card.dart';
-import 'package:dio/dio.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -91,47 +91,20 @@ class _DrugInteractionScreenState extends State<DrugInteractionScreen> {
     });
 
     try {
-      final dio = Dio();
-      final response = await dio.post(
-        Constants.openAiApi,
-        options: Options(
-          headers: {
-            'Authorization': Constants.openAiAuthorizationKey,
-            'Content-Type': 'application/json',
-          },
-          receiveTimeout: const Duration(seconds: 45),
-        ),
-        data: Constants.getInteractionRequestData(
-          _drugs,
-          includeSupplements: _includeSupplements,
-        ),
+      final data = await AIService.instance.checkDrugInteractions(
+        _drugs,
+        includeSupplements: _includeSupplements,
       );
-
-      var content =
-          response.data['choices'][0]['message']['content'] as String;
-      // Strip potential markdown fences
-      content = content
-          .replaceAll('```json', '')
-          .replaceAll('```', '')
-          .trim();
-
-      final json = jsonDecode(content) as Map<String, dynamic>;
-      setState(() => _result = DrugInteractionResult.fromJson(json));
+      setState(() => _result = DrugInteractionResult.fromJson(data));
 
       await DailyLimitService.instance.record(ApiFeature.interaction);
       if (mounted) setState(() {});
 
       AdmobService.instance.onNewSearch();
-    } on DioException catch (e, st) {
-      log('❌ Interaction API error: ${e.response?.data ?? e.message}\n$st');
+    } on FirebaseFunctionsException catch (e, st) {
+      log('❌ Interaction function error: ${e.code} ${e.message}\n$st');
       if (mounted) {
-        final code = e.response?.statusCode;
-        final msg = code == 401
-            ? 'API key invalid. Please contact support.'
-            : code == 429
-                ? 'Rate limit reached. Please wait a moment.'
-                : 'Check failed. Please try again.';
-        Utils.showMessage(context, msg, isError: true);
+        Utils.showMessage(context, AIService.friendlyError(e), isError: true);
       }
     } catch (e, st) {
       log('❌ Interaction check failed: $e\n$st');

@@ -1,16 +1,16 @@
-import 'dart:convert';
 import 'dart:developer';
 
 import 'package:ai_medicine_tracker/helper/app_colors.dart';
 import 'package:ai_medicine_tracker/helper/constant.dart';
 import 'package:ai_medicine_tracker/helper/utils.dart';
 import 'package:ai_medicine_tracker/services/admob_service.dart';
+import 'package:ai_medicine_tracker/services/ai_service.dart';
 import 'package:ai_medicine_tracker/services/daily_limit_service.dart';
 import 'package:ai_medicine_tracker/services/subscription_service.dart';
 import 'package:ai_medicine_tracker/screens/paywall_screen.dart';
 import 'package:ai_medicine_tracker/widgets/app_text.dart';
 import 'package:ai_medicine_tracker/widgets/banner_ad_widget.dart';
-import 'package:dio/dio.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -59,34 +59,16 @@ class _CannabisInteractionsScreenState
     });
 
     try {
-      final dio = Dio();
-      final response = await dio.post(
-        Constants.openAiApi,
-        options: Options(
-          headers: {
-            'Authorization': Constants.openAiAuthorizationKey,
-            'Content-Type': 'application/json',
-          },
-          receiveTimeout: const Duration(seconds: 45),
-        ),
-        data: Constants.getCannabisInteractionRequest(name),
-      );
-
-      var content =
-          response.data['choices'][0]['message']['content'] as String;
-      content = content.replaceAll('```json', '').replaceAll('```', '').trim();
-
-      final json = jsonDecode(content) as Map<String, dynamic>;
-      setState(() => _result = _CannabisResult.fromJson(json, name));
+      final data = await AIService.instance.checkCannabisInteractions(name);
+      setState(() => _result = _CannabisResult.fromJson(data, name));
 
       await DailyLimitService.instance.record(ApiFeature.interaction);
 
       AdmobService.instance.onNewSearch();
-    } on DioException catch (e, st) {
-      log('❌ Cannabis check error: ${e.response?.data ?? e.message}\n$st');
+    } on FirebaseFunctionsException catch (e, st) {
+      log('❌ Cannabis function error: ${e.code} ${e.message}\n$st');
       if (mounted) {
-        Utils.showMessage(context, 'Check failed. Please try again.',
-            isError: true);
+        Utils.showMessage(context, AIService.friendlyError(e), isError: true);
       }
     } catch (e, st) {
       log('❌ Cannabis check failed: $e\n$st');
