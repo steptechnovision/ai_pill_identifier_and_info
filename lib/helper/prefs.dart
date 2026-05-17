@@ -16,6 +16,8 @@ class Prefs {
   static const String keyDailyCount = 'daily_search_count';
   static const String keyDailyInteractionDate = 'daily_interaction_date';
   static const String keyDailyInteractionCount = 'daily_interaction_count';
+  static const String keyDailyCannabisDate = 'daily_cannabis_date';
+  static const String keyDailyCannabisCount = 'daily_cannabis_count';
 
   // ── subscription ──────────────────────────────────────
   static const String keyIsPro = 'is_pro_active';
@@ -98,6 +100,13 @@ class Prefs {
     return true;
   }
 
+  static Future<bool> deductTokens(int amount) async {
+    final current = getTokens();
+    if (current < amount) return false;
+    await prefs.setInt(keyTokens, current - amount);
+    return true;
+  }
+
   // ── onboarding ────────────────────────────────────────
   static bool isOnboardingDone() => prefs.getBool(keyOnboardingDone) ?? false;
 
@@ -145,6 +154,19 @@ class Prefs {
     await prefs.setString(keyDailyInteractionDate, _todayStr());
     final current = getDailyInteractionCount();
     await prefs.setInt(keyDailyInteractionCount, current + 1);
+  }
+
+  // ── daily limit (cannabis interactions) ──────────────
+  static int getDailyCannabisCount() {
+    final saved = prefs.getString(keyDailyCannabisDate);
+    if (saved != _todayStr()) return 0;
+    return prefs.getInt(keyDailyCannabisCount) ?? 0;
+  }
+
+  static Future<void> incrementDailyCannabisCount() async {
+    await prefs.setString(keyDailyCannabisDate, _todayStr());
+    final current = getDailyCannabisCount();
+    await prefs.setInt(keyDailyCannabisCount, current + 1);
   }
 
   // ── subscription ──────────────────────────────────────

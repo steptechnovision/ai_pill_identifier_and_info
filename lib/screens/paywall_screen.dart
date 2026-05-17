@@ -72,6 +72,39 @@ class _PaywallScreenState extends State<PaywallScreen> {
     }
   }
 
+  // ── Price helpers (all read live from Play Store) ─────
+  double get _annualRawPrice =>
+      _products.where((p) => p.id == Constants.subAnnualId).firstOrNull?.rawPrice ?? 2399;
+
+  double get _monthlyRawPrice =>
+      _products.where((p) => p.id == Constants.subMonthlyId).firstOrNull?.rawPrice ?? 399;
+
+  String get _currencySymbol =>
+      _products.firstOrNull?.currencySymbol ?? '₹';
+
+  String _fmt(double v) => '$_currencySymbol${v.toStringAsFixed(0)}';
+
+  String get _annualFullPrice =>
+      _products.where((p) => p.id == Constants.subAnnualId).firstOrNull?.price ??
+      Constants.subAnnualFallbackPrice;
+
+  String get _monthlyFullPrice =>
+      _products.where((p) => p.id == Constants.subMonthlyId).firstOrNull?.price ??
+      Constants.subMonthlyFallbackPrice;
+
+  // ₹200/mo equivalent of annual plan
+  String get _annualMonthlyEquiv => '${_fmt(_annualRawPrice / 12)}/mo';
+
+  // ₹2,389 saved vs paying monthly
+  double get _annualSavings => (_monthlyRawPrice * 12) - _annualRawPrice;
+
+  // 50% off
+  int get _discountPercent {
+    final yearly = _monthlyRawPrice * 12;
+    if (yearly <= 0) return 0;
+    return ((_annualSavings / yearly) * 100).round();
+  }
+
   Future<void> _purchase() async {
     final product = _selectedProduct;
     if (product == null) {
@@ -229,7 +262,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
         ),
         6.verticalSpace,
         AppText(
-          'Unlimited medicine searches, drug interaction\nchecks, and 30 scan tokens every month.',
+          '${Constants.proDailySearchLimit} searches/day, drug interaction\nchecks, and ${Constants.proMonthlyTokens} scan tokens every month.',
           textAlign: TextAlign.center,
           fontSize: 13.sp,
           color: Colors.white54,
@@ -243,11 +276,11 @@ class _PaywallScreenState extends State<PaywallScreen> {
   // ── Feature list ─────────────────────────────────────
   Widget _buildFeatureList() {
     final features = [
-      (Icons.all_inclusive_rounded, 'Unlimited AI Medicine Analysis',
-          '30 searches/day — 10× more than free'),
+      (Icons.all_inclusive_rounded, 'AI Medicine Analysis',
+          '${Constants.proDailySearchLimit} searches/day — ${Constants.proDailySearchLimit}× more than free'),
       (Icons.warning_amber_rounded, 'Drug Interaction Checker',
-          '20 checks/day — keep your family safe'),
-      (Icons.camera_alt_rounded, '30 Camera Scan Tokens / Month',
+          '${Constants.proDailyInteractionLimit} checks/day — token-only for free users'),
+      (Icons.camera_alt_rounded, '${Constants.proMonthlyTokens} Camera Scan Tokens / Month',
           'Scan pills, capsules, and labels with AI'),
       (Icons.medication_liquid_rounded, 'My Medications List',
           'Build your personal medication profile'),
@@ -362,24 +395,12 @@ class _PaywallScreenState extends State<PaywallScreen> {
           else ...[
             _buildPriceCard(
               id: Constants.subAnnualId,
-              price: _sub.annualRegularPrice.isNotEmpty
-                  ? _sub.annualRegularPrice
-                  : (_products
-                          .where((p) => p.id == Constants.subAnnualId)
-                          .firstOrNull
-                          ?.price ??
-                      Constants.subAnnualFallbackPrice),
               isAnnual: true,
               trialDays: _sub.annualTrialDays,
             ),
             8.verticalSpace,
             _buildPriceCard(
               id: Constants.subMonthlyId,
-              price: _products
-                      .where((p) => p.id == Constants.subMonthlyId)
-                      .firstOrNull
-                      ?.price ??
-                  Constants.subMonthlyFallbackPrice,
               isAnnual: false,
             ),
             16.verticalSpace,
@@ -461,11 +482,28 @@ class _PaywallScreenState extends State<PaywallScreen> {
   // ── Price selection card ──────────────────────────────
   Widget _buildPriceCard({
     required String id,
-    required String price,
     required bool isAnnual,
     int trialDays = 0,
   }) {
     final isSelected = _selectedId == id;
+
+    // Annual: show monthly equivalent on right; Monthly: show monthly price
+    final rightPriceMain = isAnnual ? _fmt(_annualRawPrice / 12) : _monthlyFullPrice;
+    final rightPriceSub = isAnnual ? '/mo' : null;
+
+    // Annual subtitle: billed info + savings
+    String subtitle;
+    if (isAnnual) {
+      final billed = 'billed $_annualFullPrice/year';
+      final savings = _discountPercent > 0
+          ? ' · Save ${_fmt(_annualSavings)} ($_discountPercent% off)'
+          : '';
+      subtitle = trialDays > 0
+          ? '$trialDays-day free trial · $billed$savings'
+          : '$billed$savings';
+    } else {
+      subtitle = 'Cancel anytime';
+    }
 
     return GestureDetector(
       onTap: () => setState(() => _selectedId = id),
@@ -493,13 +531,9 @@ class _PaywallScreenState extends State<PaywallScreen> {
               height: 20,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isSelected
-                    ? UIConstants.accentGreen
-                    : Colors.transparent,
+                color: isSelected ? UIConstants.accentGreen : Colors.transparent,
                 border: Border.all(
-                  color: isSelected
-                      ? UIConstants.accentGreen
-                      : Colors.white30,
+                  color: isSelected ? UIConstants.accentGreen : Colors.white30,
                   width: 2,
                 ),
               ),
@@ -524,39 +558,56 @@ class _PaywallScreenState extends State<PaywallScreen> {
                       if (isAnnual) ...[
                         6.horizontalSpace,
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color: UIConstants.accentGreen,
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: AppText('BEST VALUE',
-                              fontSize: 8.sp,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.black),
+                              fontSize: 8.sp, fontWeight: FontWeight.w800, color: Colors.black),
                         ),
+                        if (_discountPercent > 0) ...[
+                          4.horizontalSpace,
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+                            ),
+                            child: AppText('SAVE $_discountPercent%',
+                                fontSize: 8.sp, fontWeight: FontWeight.w800, color: Colors.amber),
+                          ),
+                        ],
                       ],
                     ],
                   ),
                   4.verticalSpace,
                   AppText(
-                    isAnnual && trialDays > 0
-                        ? '$trialDays-day free trial · then $price/year'
-                        : isAnnual
-                            ? 'Best annual value'
-                            : 'Cancel anytime',
+                    subtitle,
                     fontSize: 11.sp,
-                    color: isAnnual ? UIConstants.accentGreen : Colors.white38,
+                    color: isAnnual ? UIConstants.accentGreen.withValues(alpha: 0.8) : Colors.white38,
+                    maxLines: 2,
+                    lineHeight: 1.4,
                   ),
                 ],
               ),
             ),
-            // Price
-            AppText(
-              price,
-              fontSize: 15.sp,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
+            12.horizontalSpace,
+            // Price (right side)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AppText(
+                  rightPriceMain,
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+                if (rightPriceSub != null)
+                  AppText(rightPriceSub, fontSize: 10.sp, color: Colors.white38),
+              ],
             ),
           ],
         ),

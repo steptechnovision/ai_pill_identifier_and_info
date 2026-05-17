@@ -2,10 +2,12 @@ import 'dart:developer';
 
 import 'package:ai_medicine_tracker/helper/app_colors.dart';
 import 'package:ai_medicine_tracker/helper/constant.dart';
+import 'package:ai_medicine_tracker/helper/prefs.dart';
 import 'package:ai_medicine_tracker/helper/utils.dart';
 import 'package:ai_medicine_tracker/models/drug_interaction.dart';
 import 'package:ai_medicine_tracker/models/user_medication.dart';
 import 'package:ai_medicine_tracker/screens/paywall_screen.dart';
+import 'package:ai_medicine_tracker/screens/token_purchase_screen.dart';
 import 'package:ai_medicine_tracker/services/admob_service.dart';
 import 'package:ai_medicine_tracker/services/ai_service.dart';
 import 'package:ai_medicine_tracker/services/daily_limit_service.dart';
@@ -72,16 +74,26 @@ class _DrugInteractionScreenState extends State<DrugInteractionScreen> {
       return;
     }
 
+    final isPro = SubscriptionService.instance.isPro;
+
+    if (!isPro) {
+      _showFreeUserInteractionDialog();
+      return;
+    }
+
     if (DailyLimitService.instance.isLimitReached(ApiFeature.interaction)) {
       _showInteractionLimitDialog();
       return;
     }
 
+    await _performCheck(spendTokens: false);
+  }
+
+  Future<void> _performCheck({required bool spendTokens}) async {
     final online = await Utils.checkInternetWithLoading();
     if (!mounted) return;
     if (!online) {
-      Utils.showMessage(
-          context, 'No internet connection.', isError: true);
+      Utils.showMessage(context, 'No internet connection.', isError: true);
       return;
     }
 
@@ -97,7 +109,9 @@ class _DrugInteractionScreenState extends State<DrugInteractionScreen> {
       );
       setState(() => _result = DrugInteractionResult.fromJson(data));
 
-      await DailyLimitService.instance.record(ApiFeature.interaction);
+      if (!spendTokens) {
+        await DailyLimitService.instance.record(ApiFeature.interaction);
+      }
       if (mounted) setState(() {});
 
       AdmobService.instance.onNewSearch();
@@ -109,16 +123,122 @@ class _DrugInteractionScreenState extends State<DrugInteractionScreen> {
     } catch (e, st) {
       log('❌ Interaction check failed: $e\n$st');
       if (mounted) {
-        Utils.showMessage(context, 'Check failed. Please try again.',
-            isError: true);
+        Utils.showMessage(context, 'Check failed. Please try again.', isError: true);
       }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
+  void _showFreeUserInteractionDialog() {
+    final tokens = Prefs.getTokens();
+    final hasEnough = tokens >= Constants.tokenCostInteraction;
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A1A),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.purple.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.purple.withValues(alpha: 0.2)),
+                ),
+                child: const Icon(Icons.medication_liquid_rounded, size: 36, color: Colors.purpleAccent),
+              ),
+              20.verticalSpace,
+              AppText(
+                'Premium Feature',
+                textAlign: TextAlign.center,
+                color: Colors.white,
+                fontSize: 20.sp,
+                fontWeight: FontWeight.bold,
+              ),
+              12.verticalSpace,
+              AppText(
+                'Drug interaction checking requires a Pro subscription or ${Constants.tokenCostInteraction} tokens per check.',
+                textAlign: TextAlign.center,
+                color: Colors.white54,
+                fontSize: 13.sp,
+                lineHeight: 1.55,
+                maxLines: 5,
+              ),
+              24.verticalSpace,
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const PaywallScreen()));
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: UIConstants.accentGreen,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  icon: const Icon(Icons.stars_rounded, size: 18),
+                  label: AppText('Upgrade to Pro', fontSize: 14.sp, fontWeight: FontWeight.bold),
+                ),
+              ),
+              10.verticalSpace,
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    if (hasEnough) {
+                      final ok = await Prefs.deductTokens(Constants.tokenCostInteraction);
+                      if (ok && mounted) {
+                        setState(() {});
+                        await _performCheck(spendTokens: true);
+                      }
+                    } else {
+                      if (mounted) {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const PurchaseTokenScreen()));
+                      }
+                    }
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.amber,
+                    side: const BorderSide(color: Colors.amber),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  icon: Icon(hasEnough ? Icons.toll_rounded : Icons.add_circle_outline_rounded, size: 18),
+                  label: AppText(
+                    hasEnough
+                        ? 'Use ${Constants.tokenCostInteraction} Tokens  ($tokens available)'
+                        : 'Buy Tokens  (need ${Constants.tokenCostInteraction})',
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              10.verticalSpace,
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: AppText('Maybe later', fontSize: 12.sp, color: Colors.white38),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showInteractionLimitDialog() {
-    final isPro = SubscriptionService.instance.isPro;
     final limit = DailyLimitService.instance.getLimit(ApiFeature.interaction);
     showDialog(
       context: context,
@@ -154,9 +274,7 @@ class _DrugInteractionScreenState extends State<DrugInteractionScreen> {
               ),
               12.verticalSpace,
               AppText(
-                isPro
-                    ? 'You\'ve used all $limit interaction checks for today.\nResets at midnight.'
-                    : 'You\'ve used all $limit free interaction checks for today.\nUpgrade to Pro for ${ Constants.proDailyInteractionLimit} checks/day.',
+                'You\'ve used all $limit interaction checks for today.\nResets at midnight.',
                 textAlign: TextAlign.center,
                 color: Colors.white54,
                 fontSize: 13.sp,
@@ -164,25 +282,6 @@ class _DrugInteractionScreenState extends State<DrugInteractionScreen> {
                 maxLines: 5,
               ),
               24.verticalSpace,
-              if (!isPro)
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const PaywallScreen()));
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: UIConstants.accentGreen,
-                      foregroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                    icon: const Icon(Icons.stars_rounded, size: 18),
-                    label: AppText('Upgrade to Pro', fontSize: 14.sp, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              if (!isPro) 10.verticalSpace,
               SizedBox(
                 width: double.infinity,
                 height: 48,
@@ -193,7 +292,7 @@ class _DrugInteractionScreenState extends State<DrugInteractionScreen> {
                     side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
-                  child: AppText(isPro ? 'Got it' : 'Maybe later', fontSize: 14.sp),
+                  child: AppText('Got it', fontSize: 14.sp),
                 ),
               ),
             ],

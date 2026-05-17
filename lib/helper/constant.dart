@@ -16,12 +16,21 @@ class Constants {
   static const String appStoreId = '';
 
   // ── Daily limits (free / Pro) ────────────────────────
-  static const int freeDailySearchLimit = 3;
-  static const int freeDailyInteractionLimit = 2;
-  static const int proDailySearchLimit = 30;
-  static const int proDailyInteractionLimit = 20;
+  static const int freeDailySearchLimit = 1;
+  static const int freeDailyInteractionLimit = 0;
+  static const int freeDailyCannabisLimit = 0;
+  static const int proDailySearchLimit = 20;
+  static const int proDailyInteractionLimit = 15;
+  static const int proDailyCannabisLimit = 10;
   static const int freeFamilyMembersLimit = 2;
   static const int proFamilyMembersLimit = 20;
+
+  // ── Token costs per feature ───────────────────────────
+  static const int tokenCostSearch = 1;
+  static const int tokenCostInteraction = 3;
+  static const int tokenCostCannabis = 2;
+  static const int tokenCostScan = 5;
+  static const int tokenCostMissedDose = 1;
 
   // ── Pro monthly token bundle ──────────────────────────
   static const int proMonthlyTokens = 30; // granted once per calendar month
@@ -33,8 +42,8 @@ class Constants {
   static const Set<String> subscriptionIds = {subMonthlyId, subAnnualId};
 
   // ── Subscription fallback prices (shown when Play Store unavailable) ────
-  static const String subMonthlyFallbackPrice = '₹199/month';
-  static const String subAnnualFallbackPrice = '₹1,199/year';
+  static const String subMonthlyFallbackPrice = '₹399/month';
+  static const String subAnnualFallbackPrice = '₹2,399/year';
 
   // ── AdMob IDs (test in debug, real in release) ────────
   static String get admobBannerAdUnitId => kDebugMode

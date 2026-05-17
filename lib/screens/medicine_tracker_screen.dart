@@ -261,7 +261,7 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
               ),
               12.verticalSpace,
               AppText(
-                'You\'ve used all ${Constants.freeDailySearchLimit} free searches for today.\nCome back tomorrow or unlock more now.',
+                'You\'ve used your ${Constants.freeDailySearchLimit} free search for today.\nCome back tomorrow or use tokens/Pro to search more.',
                 textAlign: TextAlign.center,
                 color: Colors.white54,
                 fontSize: 13.sp,

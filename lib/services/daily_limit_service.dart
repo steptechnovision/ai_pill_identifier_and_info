@@ -2,7 +2,7 @@ import '../helper/constant.dart';
 import '../helper/prefs.dart';
 import '../services/subscription_service.dart';
 
-enum ApiFeature { search, interaction }
+enum ApiFeature { search, interaction, cannabis }
 
 class DailyLimitService {
   DailyLimitService._();
@@ -19,6 +19,8 @@ class DailyLimitService {
         return isPro ? Constants.proDailySearchLimit : Constants.freeDailySearchLimit;
       case ApiFeature.interaction:
         return isPro ? Constants.proDailyInteractionLimit : Constants.freeDailyInteractionLimit;
+      case ApiFeature.cannabis:
+        return isPro ? Constants.proDailyCannabisLimit : Constants.freeDailyCannabisLimit;
     }
   }
 
@@ -28,6 +30,8 @@ class DailyLimitService {
         return Prefs.getDailyCount();
       case ApiFeature.interaction:
         return Prefs.getDailyInteractionCount();
+      case ApiFeature.cannabis:
+        return Prefs.getDailyCannabisCount();
     }
   }
 
@@ -42,6 +46,8 @@ class DailyLimitService {
         return Prefs.incrementDailyCount();
       case ApiFeature.interaction:
         return Prefs.incrementDailyInteractionCount();
+      case ApiFeature.cannabis:
+        return Prefs.incrementDailyCannabisCount();
     }
   }
 
