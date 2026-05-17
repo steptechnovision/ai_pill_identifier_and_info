@@ -28,7 +28,9 @@ void main() async {
   // Debug mode uses a debug token (register it in Firebase Console → App Check).
   // Release mode uses Play Integrity (Android) / App Attest (iOS).
   await FirebaseAppCheck.instance.activate(
-    providerAndroid: kDebugMode ? const AndroidDebugProvider() : const AndroidPlayIntegrityProvider(),
+    providerAndroid: kDebugMode
+        ? const AndroidDebugProvider(debugToken: 'b48b0120-e52b-4fed-a2f0-80e3e4263e1c')
+        : const AndroidPlayIntegrityProvider(),
     providerApple: kDebugMode ? const AppleDebugProvider() : const AppleAppAttestProvider(),
   );
 
