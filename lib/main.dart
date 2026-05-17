@@ -28,8 +28,8 @@ void main() async {
   // Debug mode uses a debug token (register it in Firebase Console → App Check).
   // Release mode uses Play Integrity (Android) / App Attest (iOS).
   await FirebaseAppCheck.instance.activate(
-    androidProvider: kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
-    appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.appAttest,
+    providerAndroid: kDebugMode ? const AndroidDebugProvider() : const AndroidPlayIntegrityProvider(),
+    providerApple: kDebugMode ? const AppleDebugProvider() : const AppleAppAttestProvider(),
   );
 
   await RemoteConfigService.init();

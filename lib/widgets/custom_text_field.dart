@@ -93,8 +93,6 @@ class CustomTextFieldState extends State<CustomTextField> {
   bool _hasFocus = false; // ✨ Tracks focus for styling
 
   // late stt.SpeechToText _speech;
-  final bool _isListening = false;
-  BuildContext? _bottomSheetContext;
   bool _showClearIcon = false;
 
   @override

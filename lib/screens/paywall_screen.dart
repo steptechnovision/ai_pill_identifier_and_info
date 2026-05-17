@@ -92,9 +92,6 @@ class _PaywallScreenState extends State<PaywallScreen> {
       _products.where((p) => p.id == Constants.subMonthlyId).firstOrNull?.price ??
       Constants.subMonthlyFallbackPrice;
 
-  // ₹200/mo equivalent of annual plan
-  String get _annualMonthlyEquiv => '${_fmt(_annualRawPrice / 12)}/mo';
-
   // ₹2,389 saved vs paying monthly
   double get _annualSavings => (_monthlyRawPrice * 12) - _annualRawPrice;
 
