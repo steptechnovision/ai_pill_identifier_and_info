@@ -40,7 +40,7 @@ class ReminderService {
           await FlutterTimezone.getLocalTimezone();
       tz.setLocalLocation(tz.getLocation(timeZoneName.identifier));
 
-      const androidInit = AndroidInitializationSettings('app_icon');
+      const androidInit = AndroidInitializationSettings('ic_notification');
       const iosInit = DarwinInitializationSettings();
 
       const initSettings = InitializationSettings(
@@ -227,6 +227,7 @@ class ReminderService {
         'medicine_reminders',
         'Medicine Reminders',
         channelDescription: 'Daily reminders to take your medicines on time',
+        icon: 'ic_notification',
         priority: Priority.max,
         importance: Importance.max,
         playSound: true,
@@ -316,6 +317,7 @@ class ReminderService {
       'high_importance_channel',
       'App Notifications',
       channelDescription: 'Important alerts from the app',
+      icon: 'ic_notification',
       importance: Importance.max,
       priority: Priority.high,
     );

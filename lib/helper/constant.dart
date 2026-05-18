@@ -43,7 +43,7 @@ class Constants {
 
   // ── Subscription fallback prices (shown when Play Store unavailable) ────
   static const String subMonthlyFallbackPrice = '₹399/month';
-  static const String subAnnualFallbackPrice = '₹2,399/year';
+  static const String subAnnualFallbackPrice = '₹2,900/year';
 
   // ── AdMob IDs (test in debug, real in release) ────────
   static String get admobBannerAdUnitId => kDebugMode

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+  <!-- Pill capsule: left half solid, right half outlined — classic medicine icon -->
+  <path
+      android:fillColor="#FFFFFF"
+      android:pathData="M17.5,6.5H6.5C3.97,6.5 2,8.47 2,11s1.97,4.5 4.5,4.5H12V6.5h5.5z"/>
+  <path
+      android:fillColor="#FFFFFF"
+      android:pathData="M12,6.5v9h5.5c2.53,0 4.5,-1.97 4.5,-4.5S20.03,6.5 17.5,6.5H12zM17.5,14.5H13v-7h4.5c1.93,0 3.5,1.57 3.5,3.5S19.43,14.5 17.5,14.5z"/>
+</vector>
