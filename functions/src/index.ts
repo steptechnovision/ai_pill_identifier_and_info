@@ -1,6 +1,10 @@
 import { onCall, HttpsError, CallableRequest } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 import OpenAI from "openai";
+import { initializeApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
+
+initializeApp();
 
 // ── Secret (stored in Firebase Secret Manager, never in code or APK) ─────────
 const openAiKey = defineSecret("OPENAI_API_KEY");
@@ -237,6 +241,25 @@ Rules:
     });
 
     return parseJsonResponse(response.choices[0].message.content);
+  }
+);
+
+// ── 6. Grant Welcome Tokens (one-time per device, verified via Firestore) ────
+export const grantWelcomeTokens = onCall(
+  { enforceAppCheck: true },
+  async (request: CallableRequest) => {
+    const deviceId = request.data.deviceId;
+    if (typeof deviceId !== "string" || deviceId.trim().length === 0 || deviceId.length > 200) {
+      throw new HttpsError("invalid-argument", "deviceId required");
+    }
+    const db = getFirestore();
+    const docRef = db.collection("deviceTokens").doc(deviceId.trim());
+    const doc = await docRef.get();
+    if (doc.exists) {
+      return { granted: false };
+    }
+    await docRef.set({ grantedAt: new Date().toISOString() });
+    return { granted: true };
   }
 );
 

@@ -7,12 +7,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 
-printLog(dynamic data, {bool printLog = false}) {
-  if (printLog) {
-    developer.log('$data');
-  } else {
-    print('$data');
-  }
+void printLog(dynamic data, {bool printLog = false}) {
+  developer.log('$data');
 }
 
 class Utils {

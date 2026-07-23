@@ -6,7 +6,13 @@
       "PowerShell(cd \"c:\\\\Users\\\\rajka\\\\ai_medicine_tracker\"; dart analyze lib/ 2>&1 | Where-Object { $_ -match \"error\" } | Select-Object -First 20)",
       "Bash(flutter analyze *)",
       "WebFetch(domain:support.google.com)",
-      "Bash(grep -v \"_test\\\\|//.*deprecated\")"
+      "Bash(grep -v \"_test\\\\|//.*deprecated\")",
+      "PowerShell(cd \"c:\\\\Users\\\\rajka\\\\ai_medicine_tracker\"; Select-String -Path \"pubspec.lock\" -Pattern \"cloud_functions|firebase_analytics|firebase_app_check|firebase_remote_config|flutter_timezone|image_picker_android|in_app_review|in_app_update|package_info_plus|share_plus|shared_preferences_android|webview_flutter_android|app_settings\" | Where-Object { $_ -notmatch \"path|description|dependency|source\" } | Select-Object -First 40)",
+      "PowerShell(cd \"c:\\\\Users\\\\rajka\\\\ai_medicine_tracker\"; $content = Get-Content \"pubspec.lock\"; $plugins = @\\(\"app_settings\", \"cloud_functions\", \"firebase_analytics\", \"firebase_app_check\", \"firebase_remote_config\", \"flutter_timezone\", \"image_picker_android\", \"in_app_review\", \"in_app_update\", \"package_info_plus\", \"share_plus\", \"shared_preferences_android\", \"webview_flutter_android\"\\); foreach \\($p in $plugins\\) { $idx = \\($content | Select-String \"^  ${p}:$\"\\).LineNumber; if \\($idx\\) { $version = $content[$idx+3].Trim\\(\\); Write-Host \"${p}: $version\" } })",
+      "PowerShell(cd \"c:\\\\Users\\\\rajka\\\\ai_medicine_tracker\"; $content = Get-Content \"pubspec.lock\"; $plugins = @\\(\"app_settings\", \"cloud_functions\", \"firebase_analytics\", \"firebase_app_check\", \"firebase_remote_config\", \"flutter_timezone\", \"image_picker_android\", \"in_app_review\", \"in_app_update\", \"package_info_plus\", \"share_plus\", \"shared_preferences_android\", \"webview_flutter_android\"\\); foreach \\($p in $plugins\\) { $idx = \\($content | Select-String \"^  ${p}:$\"\\).LineNumber; if \\($idx\\) { $version = $content[$idx+4].Trim\\(\\); Write-Host \"${p}: $version\" } })",
+      "WebFetch(domain:pub.dev)",
+      "PowerShell($jbrPath = Get-ChildItem \"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\\\\bin\\\\java.exe\" -ErrorAction SilentlyContinue; if \\($jbrPath\\) { Write-Host $jbrPath.FullName } else { Get-ChildItem \"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\\" -Directory | Select-Object Name })",
+      "PowerShell($env:JAVA_HOME = \"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\"; $env:PATH = \"$env:JAVA_HOME\\\\bin;$env:PATH\"; cd \"c:\\\\Users\\\\rajka\\\\ai_medicine_tracker\\\\android\"; .\\\\gradlew.bat --version 2>&1 | Select-Object -Last 10)"
     ]
   }
 }

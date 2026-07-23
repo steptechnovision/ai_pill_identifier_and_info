@@ -186,7 +186,7 @@ class _CollapsibleCardState extends State<CollapsibleCard>
                 // Body
                 SizeTransition(
                   sizeFactor: _expandAnimation,
-                  axisAlignment: -1.0,
+                  alignment: Alignment.topCenter,
                   child: Padding(
                     padding: EdgeInsets.only(top: 8.h, left: 4.w),
                     child: Column(

@@ -307,6 +307,7 @@ class _SettingsScreenState extends State<SettingsScreen>
     );
     if (selected == null || !mounted) return;
     await Prefs.setLanguage(selected);
+    if (!mounted) return;
     setState(() {});
     final lang = AppLanguage.fromCode(selected);
     Utils.showMessage(

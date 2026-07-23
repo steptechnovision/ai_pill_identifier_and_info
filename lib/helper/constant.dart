@@ -15,8 +15,11 @@ class Constants {
   static const String emailAddress = 'steptechnovision@gmail.com';
   static const String appStoreId = '';
 
+  // ── Welcome tokens (one-time grant on new device, verified server-side) ──
+  static const int welcomeTokens = 2;
+
   // ── Daily limits (free / Pro) ────────────────────────
-  static const int freeDailySearchLimit = 1;
+  static const int freeDailySearchLimit = 0; // free users must use tokens; no daily free searches
   static const int freeDailyInteractionLimit = 0;
   static const int freeDailyCannabisLimit = 0;
   static const int proDailySearchLimit = 20;

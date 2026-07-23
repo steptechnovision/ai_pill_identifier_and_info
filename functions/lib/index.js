@@ -1,9 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getMissedDoseAdvice = exports.scanPill = exports.checkCannabisInteractions = exports.checkDrugInteractions = exports.searchMedicine = void 0;
+exports.getMissedDoseAdvice = exports.grantWelcomeTokens = exports.scanPill = exports.checkCannabisInteractions = exports.checkDrugInteractions = exports.searchMedicine = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const params_1 = require("firebase-functions/params");
 const openai_1 = require("openai");
+const app_1 = require("firebase-admin/app");
+const firestore_1 = require("firebase-admin/firestore");
+(0, app_1.initializeApp)();
 // ── Secret (stored in Firebase Secret Manager, never in code or APK) ─────────
 const openAiKey = (0, params_1.defineSecret)("OPENAI_API_KEY");
 // ── Models ────────────────────────────────────────────────────────────────────
@@ -208,6 +211,21 @@ Rules:
         ],
     });
     return parseJsonResponse(response.choices[0].message.content);
+});
+// ── 6. Grant Welcome Tokens (one-time per device, verified via Firestore) ────
+exports.grantWelcomeTokens = (0, https_1.onCall)({ enforceAppCheck: true }, async (request) => {
+    const deviceId = request.data.deviceId;
+    if (typeof deviceId !== "string" || deviceId.trim().length === 0 || deviceId.length > 200) {
+        throw new https_1.HttpsError("invalid-argument", "deviceId required");
+    }
+    const db = (0, firestore_1.getFirestore)();
+    const docRef = db.collection("deviceTokens").doc(deviceId.trim());
+    const doc = await docRef.get();
+    if (doc.exists) {
+        return { granted: false };
+    }
+    await docRef.set({ grantedAt: new Date().toISOString() });
+    return { granted: true };
 });
 // ── 5. Missed Dose Advice ─────────────────────────────────────────────────────
 exports.getMissedDoseAdvice = (0, https_1.onCall)(Object.assign(Object.assign({}, callableOpts), { timeoutSeconds: 30 }), async (request) => {

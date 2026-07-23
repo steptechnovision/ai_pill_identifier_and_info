@@ -7,6 +7,7 @@ import 'package:ai_medicine_tracker/services/firebase_service.dart';
 import 'package:ai_medicine_tracker/services/reminder_service.dart';
 import 'package:ai_medicine_tracker/services/remote_config_service.dart';
 import 'package:ai_medicine_tracker/services/subscription_service.dart';
+import 'package:ai_medicine_tracker/services/welcome_token_service.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/foundation.dart';
@@ -38,6 +39,7 @@ void main() async {
 
   // Init monetization services
   await SubscriptionService.instance.init();
+  await WelcomeTokenService.grant();
   await AdmobService.instance.init();
 
   runApp(const MedicineApp());

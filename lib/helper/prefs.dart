@@ -25,6 +25,15 @@ class Prefs {
   static const String keyProProductId = 'pro_product_id';
   static const String keySimulatePro = 'simulate_pro_mode';
 
+  // ── welcome tokens (one-time server-side grant) ──────
+  static const String keyWelcomeTokensChecked = 'welcome_tokens_checked';
+
+  static bool isWelcomeTokensChecked() =>
+      prefs.getBool(keyWelcomeTokensChecked) ?? false;
+
+  static Future<void> setWelcomeTokensChecked() async =>
+      prefs.setBool(keyWelcomeTokensChecked, true);
+
   // ── ad action counter (persists across restarts) ─────
   static const String keyAdActionCount = 'ad_action_count';
   static const String keyAdNextThreshold = 'ad_next_threshold';

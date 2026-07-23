@@ -253,7 +253,7 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
               ),
               20.verticalSpace,
               AppText(
-                'Daily Limit Reached',
+                'No Credits Left',
                 textAlign: TextAlign.center,
                 color: Colors.white,
                 fontSize: 20.sp,
@@ -261,7 +261,7 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
               ),
               12.verticalSpace,
               AppText(
-                'You\'ve used your ${Constants.freeDailySearchLimit} free search for today.\nCome back tomorrow or use tokens/Pro to search more.',
+                'Your free welcome credits have been used up.\nBuy a credit pack or upgrade to Pro to keep searching.',
                 textAlign: TextAlign.center,
                 color: Colors.white54,
                 fontSize: 13.sp,
@@ -457,7 +457,7 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
                       _buildBrandSuggestions(),
                       ValueListenableBuilder(
                         valueListenable: _isLoading,
-                        builder: (_, value, __) => value
+                        builder: (_, value, _) => value
                             ? Padding(
                                 padding: EdgeInsets.symmetric(vertical: 56.h),
                                 child: Column(
@@ -623,7 +623,7 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
           ),
         ),
         child: AppText(
-          '$remaining left',
+          remaining > 0 ? '$remaining left' : 'No credits',
           fontSize: 12.sp,
           color: remaining > 0 ? Colors.white54 : UIConstants.accentRed,
           fontWeight: FontWeight.w600,
@@ -792,7 +792,7 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
               child: AppText(
                 remaining > 0
                     ? '$remaining free search${remaining == 1 ? '' : 'es'} left today'
-                    : 'Daily limit reached · upgrade plan now',
+                    : 'No credits left · upgrade or buy credits',
                 fontSize: 11.sp,
                 color: color,
               ),

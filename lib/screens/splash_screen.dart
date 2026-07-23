@@ -99,9 +99,9 @@ class _SplashScreenState extends State<SplashScreen>
       context,
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 700),
-        pageBuilder: (_, __, ___) =>
+        pageBuilder: (_, _, _) =>
             onboardingDone ? const HomeScreen() : const OnboardingScreen(),
-        transitionsBuilder: (_, anim, __, child) =>
+        transitionsBuilder: (_, anim, _, child) =>
             FadeTransition(opacity: anim, child: child),
       ),
     );
@@ -163,7 +163,7 @@ class _SplashScreenState extends State<SplashScreen>
                   // Logo with animated pulse rings
                   AnimatedBuilder(
                     animation: Listenable.merge([_ctrlMain, _ctrlPulse]),
-                    builder: (_, __) {
+                    builder: (_, _) {
                       final logoSz = 90.r;
                       return SizedBox(
                         width: 180.r,

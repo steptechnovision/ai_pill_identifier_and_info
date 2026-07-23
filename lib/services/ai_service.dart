@@ -22,6 +22,7 @@ class AIService {
     final result = await _fn('searchMedicine', timeout: const Duration(seconds: 60)).call({
       'medicineName': name,
       'language': language,
+      // ignore: use_null_aware_elements
       if (genericName != null) 'genericName': genericName,
     });
     return _toMap(result.data);
