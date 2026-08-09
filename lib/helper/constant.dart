@@ -22,9 +22,11 @@ class Constants {
   static const int freeDailySearchLimit = 0; // free users must use tokens; no daily free searches
   static const int freeDailyInteractionLimit = 0;
   static const int freeDailyCannabisLimit = 0;
-  static const int proDailySearchLimit = 20;
-  static const int proDailyInteractionLimit = 15;
-  static const int proDailyCannabisLimit = 10;
+  // Daily caps sized so that even a max-usage Pro user stays profitable on the
+  // YEARLY plan (~₹174/mo take-home after Play/GST). Worst-case AI cost ≈ ₹100/mo.
+  static const int proDailySearchLimit = 12;
+  static const int proDailyInteractionLimit = 8;
+  static const int proDailyCannabisLimit = 5;
   static const int freeFamilyMembersLimit = 2;
   static const int proFamilyMembersLimit = 20;
 
@@ -45,7 +47,7 @@ class Constants {
   static const Set<String> subscriptionIds = {subMonthlyId, subAnnualId};
 
   // ── Subscription fallback prices (shown when Play Store unavailable) ────
-  static const String subMonthlyFallbackPrice = '₹399/month';
+  static const String subMonthlyFallbackPrice = '₹400/month';
   static const String subAnnualFallbackPrice = '₹2,900/year';
 
   // ── AdMob IDs (test in debug, real in release) ────────

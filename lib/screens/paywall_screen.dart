@@ -74,10 +74,10 @@ class _PaywallScreenState extends State<PaywallScreen> {
 
   // ── Price helpers (all read live from Play Store) ─────
   double get _annualRawPrice =>
-      _products.where((p) => p.id == Constants.subAnnualId).firstOrNull?.rawPrice ?? 2399;
+      _products.where((p) => p.id == Constants.subAnnualId).firstOrNull?.rawPrice ?? 2900;
 
   double get _monthlyRawPrice =>
-      _products.where((p) => p.id == Constants.subMonthlyId).firstOrNull?.rawPrice ?? 399;
+      _products.where((p) => p.id == Constants.subMonthlyId).firstOrNull?.rawPrice ?? 400;
 
   String get _currencySymbol =>
       _products.firstOrNull?.currencySymbol ?? '₹';
