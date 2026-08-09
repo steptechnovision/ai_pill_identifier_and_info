@@ -350,13 +350,15 @@ class _PaywallScreenState extends State<PaywallScreen> {
           const Icon(Icons.celebration_rounded,
               color: UIConstants.accentGreen, size: 16),
           8.horizontalSpace,
-          AppText(
-            'Annual plan includes a $days-day free trial. You get 1 free scan now — your ${Constants.proMonthlyTokens} monthly scan credits unlock when the trial ends. Cancel before it ends — no charge.',
-            fontSize: 11.sp,
-            color: UIConstants.accentGreen.withValues(alpha: 0.8),
-            lineHeight: 1.5,
-            maxLines: 5,
-            textAlign: TextAlign.center,
+          Expanded(
+            child: AppText(
+              'Annual plan includes a $days-day free trial. You get 1 free scan now — your ${Constants.proMonthlyTokens} monthly scan credits unlock when the trial ends. Cancel before it ends — no charge.',
+              fontSize: 11.sp,
+              color: UIConstants.accentGreen.withValues(alpha: 0.8),
+              lineHeight: 1.5,
+              maxLines: 5,
+              textAlign: TextAlign.start,
+            ),
           ),
         ],
       ),
