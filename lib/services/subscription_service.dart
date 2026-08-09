@@ -35,6 +35,11 @@ class SubscriptionService {
   /// (computed from the stored start time + the plan's trial length). Used to
   /// hold back the full monthly scan credits until the trial converts to paid.
   bool get isInTrial {
+    // Not Pro (never subscribed, or cancelled/expired) → not in a trial. This
+    // must be checked first so a cancelled user immediately reads as free
+    // everywhere (e.g. the Camera trial banner) even before the 3-day window
+    // would naturally elapse.
+    if (!isPro) return false;
     if (Prefs.isTrialConverted()) return false;
     final startedAt = Prefs.getProStartedAt();
     final trialDays = Prefs.getProTrialDays();
