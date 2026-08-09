@@ -604,10 +604,14 @@ class _CannabisInteractionsScreenState
             children: [
               Icon(icon, color: color, size: 16),
               8.horizontalSpace,
-              AppText(title,
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white),
+              Expanded(
+                child: AppText(title,
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis),
+              ),
             ],
           ),
           10.verticalSpace,

@@ -548,11 +548,15 @@ class _PaywallScreenState extends State<PaywallScreen> {
                 children: [
                   Row(
                     children: [
-                      AppText(
-                        isAnnual ? 'Annual Plan' : 'Monthly Plan',
-                        fontSize: 13.sp,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                      Flexible(
+                        child: AppText(
+                          isAnnual ? 'Annual Plan' : 'Monthly Plan',
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                       if (isAnnual) ...[
                         6.horizontalSpace,

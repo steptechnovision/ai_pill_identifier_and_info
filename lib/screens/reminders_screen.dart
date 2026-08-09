@@ -386,10 +386,14 @@ class _RemindersScreenState extends State<RemindersScreen>
           const Icon(Icons.access_time_rounded,
               color: UIConstants.accentGreen, size: 14),
           8.horizontalSpace,
-          AppText(
-            'Next up: $label',
-            fontSize: 12.sp,
-            color: UIConstants.accentGreen,
+          Expanded(
+            child: AppText(
+              'Next up: $label',
+              fontSize: 12.sp,
+              color: UIConstants.accentGreen,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),
@@ -547,7 +551,10 @@ class _RemindersScreenState extends State<RemindersScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         AppText(
@@ -569,6 +576,7 @@ class _RemindersScreenState extends State<RemindersScreen>
                           ),
                         ),
                       ],
+                    ),
                     ),
                     4.verticalSpace,
                     Container(

@@ -596,10 +596,14 @@ class _MedicineHistoryScreenState extends State<MedicineHistoryScreen> {
                           const Icon(Icons.history_rounded,
                               size: 9, color: Colors.white38),
                           4.horizontalSpace,
-                          AppText(
-                            'Last viewed ${_relativeDate(item.lastUsedAt)}',
-                            fontSize: 10.sp,
-                            color: Colors.white38,
+                          Flexible(
+                            child: AppText(
+                              'Last viewed ${_relativeDate(item.lastUsedAt)}',
+                              fontSize: 10.sp,
+                              color: Colors.white38,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ],
                       ),

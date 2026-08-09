@@ -538,10 +538,15 @@ class _MyMedicationsScreenState extends State<MyMedicationsScreen> {
         children: [
           Icon(Icons.person_rounded, color: color, size: 10),
           3.horizontalSpace,
-          AppText(member.name,
-              fontSize: 10.sp,
-              color: color,
-              fontWeight: FontWeight.w600),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 90.w),
+            child: AppText(member.name,
+                fontSize: 10.sp,
+                color: color,
+                fontWeight: FontWeight.w600,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis),
+          ),
         ],
       ),
     );

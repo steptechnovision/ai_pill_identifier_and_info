@@ -388,7 +388,8 @@ class _PurchaseTokenScreenState extends State<PurchaseTokenScreen> {
                 color: Colors.amber, size: 24),
           ),
           16.horizontalSpace,
-          Column(
+          Expanded(
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               AppText(
@@ -418,6 +419,7 @@ class _PurchaseTokenScreenState extends State<PurchaseTokenScreen> {
                 ],
               ),
             ],
+            ),
           ),
         ],
       ),
