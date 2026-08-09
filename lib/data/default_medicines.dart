@@ -172,13 +172,29 @@ class DefaultMedicinesData {
         "The onset of pain relief typically occurs within 30 minutes to 1 hour after ingestion.",
       ],
       "Dosage": [
-        "For adults",
-        "the standard dose is 200-400 mg every 4-6 hours as needed",
-        "not exceeding 1200 mg without medical advice.",
-        "For children",
-        "dosing is based on weight",
-        "typically 10 mg",
-        "/kg every 6-8 hours, not to exceed the recommended daily maximum for their age group., Consult package directions or a healthcare professional for specific dosing instructions based on individual circumstances.], Interactions: [Ibuprofen may interact with anticoagulants, increasing the risk of bleeding; patients should be cautious if they are on blood thinners., Other medications that can interact include certain antidepressants, steroid medications, and other NSAIDs., It can affect blood pressure medications, potentially reducing their effectiveness, which may require dosage adjustments.], Storage: [Ibuprofen should be stored at room temperature, away from moisture and direct sunlight, to maintain its effectiveness., Keep the medication out of reach of children to prevent accidental ingestion., Do not use ibuprofen past the expiration date listed on the packaging.], Warnings: [Prolonged use of ibuprofen can increase the risk of heart attack or stroke; individuals with cardiac conditions should be monitored closely., It should not be used immediately before or after heart surgery due to potential complications., Patients with severe allergic reactions to NSAIDs should refrain from using ibuprofen.], FAQs: [Is ibuprofen safe for children? - Yes, ibuprofen can be safely used in children over six months but should be dosed according to weight., Can ibuprofen be taken during pregnancy? - Generally, ibuprofen is not recommended during pregnancy, especially in the third trimester; consult a healthcare provider for alternatives., How often can I take ibuprofen? - Adults can take ibuprofen every 4-6 hours as needed, but should not exceed the daily maximum recommended dose.]}",
+        "For adults, the standard dose is 200-400 mg every 4-6 hours as needed, not exceeding 1200 mg without medical advice.",
+        "For children, dosing is based on weight, typically 10 mg/kg every 6-8 hours, not to exceed the recommended daily maximum for their age group.",
+        "Consult package directions or a healthcare professional for specific dosing instructions based on individual circumstances.",
+      ],
+      "Interactions": [
+        "Ibuprofen may interact with anticoagulants, increasing the risk of bleeding; patients should be cautious if they are on blood thinners.",
+        "Other medications that can interact include certain antidepressants, steroid medications, and other NSAIDs.",
+        "It can affect blood pressure medications, potentially reducing their effectiveness, which may require dosage adjustments.",
+      ],
+      "Storage": [
+        "Ibuprofen should be stored at room temperature, away from moisture and direct sunlight, to maintain its effectiveness.",
+        "Keep the medication out of reach of children to prevent accidental ingestion.",
+        "Do not use ibuprofen past the expiration date listed on the packaging.",
+      ],
+      "Warnings": [
+        "Prolonged use of ibuprofen can increase the risk of heart attack or stroke; individuals with cardiac conditions should be monitored closely.",
+        "It should not be used immediately before or after heart surgery due to potential complications.",
+        "Patients with severe allergic reactions to NSAIDs should refrain from using ibuprofen.",
+      ],
+      "FAQs": [
+        "Is ibuprofen safe for children? Yes, ibuprofen can be safely used in children over six months but should be dosed according to weight.",
+        "Can ibuprofen be taken during pregnancy? Generally, ibuprofen is not recommended during pregnancy, especially in the third trimester; consult a healthcare provider for alternatives.",
+        "How often can I take ibuprofen? Adults can take ibuprofen every 4-6 hours as needed, but should not exceed the daily maximum recommended dose.",
       ],
     },
     "Dolo 650": {

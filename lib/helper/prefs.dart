@@ -92,6 +92,14 @@ class Prefs {
   static String? getString(String key) => prefs.getString(key);
 
   // ── token methods ─────────────────────────────────────
+  // TODO(server-side metering): credits are stored & enforced ON-DEVICE here.
+  // A normal user can't cause a loss and App Check blocks external abuse, but a
+  // determined user on a rooted device could edit this value to grant themselves
+  // credits and then make real (App-Check-valid) AI calls we pay for. The only
+  // full fix is to move the credit balance + the "enough credits?" check into
+  // the Cloud Functions (decrement a Firestore balance only on a successful
+  // OpenAI response). Deferred for now due to Firebase budget. Revisit when
+  // budget allows. See memory: monetization-and-growth.md.
   static int getTokens() => prefs.getInt(keyTokens) ?? 0;
 
   static Future<void> setTokens(int value) async =>

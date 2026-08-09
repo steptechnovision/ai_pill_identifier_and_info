@@ -62,7 +62,13 @@ class _CannabisInteractionsScreenState
     final online = await Utils.checkInternetWithLoading();
     if (!mounted) return;
     if (!online) {
-      Utils.showMessage(context, 'No internet connection.', isError: true);
+      // No AI call was made — refund the tokens spent to start this check.
+      if (spendTokens) await Prefs.addTokens(Constants.tokenCostCannabis);
+      if (!mounted) return;
+      setState(() {});
+      Utils.showMessage(
+          context, 'No internet connection. Your tokens were not used.',
+          isError: true);
       return;
     }
 
@@ -82,12 +88,24 @@ class _CannabisInteractionsScreenState
       AdmobService.instance.onNewSearch();
     } on FirebaseFunctionsException catch (e, st) {
       log('❌ Cannabis function error: ${e.code} ${e.message}\n$st');
+      // Refund ONLY when the AI never ran (no cost to us). Keep the charge on
+      // ambiguous failures where OpenAI may already have been billed.
+      final refunded = spendTokens && AIService.isNoCostFailure(e);
+      if (refunded) await Prefs.addTokens(Constants.tokenCostCannabis);
       if (mounted) {
-        Utils.showMessage(context, AIService.friendlyError(e), isError: true);
+        setState(() {});
+        Utils.showMessage(
+            context,
+            refunded
+                ? '${AIService.friendlyError(e)} Your tokens were not used.'
+                : AIService.friendlyError(e),
+            isError: true);
       }
     } catch (e, st) {
       log('❌ Cannabis check failed: $e\n$st');
+      // Unknown failure — the AI may have run and been billed, so no refund.
       if (mounted) {
+        setState(() {});
         Utils.showMessage(context, 'Check failed. Please try again.', isError: true);
       }
     } finally {

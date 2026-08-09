@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ai_medicine_tracker/helper/constant.dart';
 import 'package:ai_medicine_tracker/helper/prefs.dart';
 import 'package:ai_medicine_tracker/screens/splash_screen.dart';
@@ -37,8 +39,12 @@ void main() async {
 
   await RemoteConfigService.init();
 
-  // Init monetization services
-  await SubscriptionService.instance.init();
+  // Init monetization services.
+  // Subscription restore/verification waits several seconds for the Play
+  // purchase stream, so run it in the background instead of blocking the first
+  // frame. UI reads last-known Pro status from Prefs immediately and updates
+  // live via SubscriptionService.proChangeNotifier once verification finishes.
+  unawaited(SubscriptionService.instance.init());
   await WelcomeTokenService.grant();
   await AdmobService.instance.init();
 

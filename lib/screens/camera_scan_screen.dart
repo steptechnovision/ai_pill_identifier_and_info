@@ -36,7 +36,9 @@ class _CameraScanScreenState extends State<CameraScanScreen> {
   static const int _tokensPerScan = 5;
 
   Future<void> _pickImage(ImageSource source) async {
-    // 5 tokens per scan for everyone — protects against API cost losses
+    // 5 tokens per scan for everyone — protects against API cost losses.
+    // Tokens are NOT deducted here; they are charged inside _analyze() only
+    // once we are actually calling the AI, and refunded if that call fails.
     final tokens = Prefs.getTokens();
     if (tokens < _tokensPerScan) {
       if (mounted) _showCreditsDialog();
@@ -51,11 +53,6 @@ class _CameraScanScreenState extends State<CameraScanScreen> {
         maxHeight: 800,
       );
       if (picked == null) return;
-
-      // Deduct 5 tokens for all users
-      for (int i = 0; i < _tokensPerScan; i++) {
-        await Prefs.deductToken();
-      }
 
       setState(() {
         _image = File(picked.path);
@@ -204,9 +201,18 @@ class _CameraScanScreenState extends State<CameraScanScreen> {
     final online = await Utils.checkInternetWithLoading();
     if (!mounted) return;
     if (!online) {
+      // No AI call was made — no tokens have been spent.
       Utils.showMessage(context, 'No internet connection.', isError: true);
       return;
     }
+
+    // Re-check balance and charge only now that we are actually calling the AI.
+    if (Prefs.getTokens() < _tokensPerScan) {
+      if (mounted) _showCreditsDialog();
+      return;
+    }
+    await Prefs.deductTokens(_tokensPerScan);
+    if (mounted) setState(() {}); // refresh the credit chip
 
     setState(() => _loading = true);
 
@@ -229,12 +235,24 @@ class _CameraScanScreenState extends State<CameraScanScreen> {
       }
     } on FirebaseFunctionsException catch (e, st) {
       log('❌ Camera scan function error: ${e.code} ${e.message}\n$st');
+      // Refund ONLY when the AI never ran (no cost to us). Keep the charge on
+      // ambiguous failures where the vision call may already have been billed.
+      final refunded = AIService.isNoCostFailure(e);
+      if (refunded) await Prefs.addTokens(_tokensPerScan);
       if (mounted) {
-        Utils.showMessage(context, AIService.friendlyError(e), isError: true);
+        setState(() {});
+        Utils.showMessage(
+            context,
+            refunded
+                ? '${AIService.friendlyError(e)} Your credits were not used.'
+                : AIService.friendlyError(e),
+            isError: true);
       }
     } catch (e, st) {
       log('❌ Camera scan failed: $e\n$st');
+      // Unknown failure — the AI may have run and been billed, so no refund.
       if (mounted) {
+        setState(() {});
         Utils.showMessage(
             context, 'Analysis failed. Try a clearer, well-lit photo.',
             isError: true);

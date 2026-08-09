@@ -66,6 +66,32 @@ class AIService {
     return _toMap(result.data);
   }
 
+  /// True when a failure happened BEFORE the paid OpenAI call ran (rejected by
+  /// App Check, input validation, rate-limit, or the service being
+  /// unreachable). In those cases NO OpenAI cost was incurred, so any tokens
+  /// the caller reserved can be refunded with ZERO cost to us.
+  ///
+  /// Returns false for 'internal'/unknown/timeout failures, where OpenAI may
+  /// already have been billed — those must NOT be refunded, otherwise we pay
+  /// OpenAI without collecting a credit.
+  static bool isNoCostFailure(Object e) {
+    if (e is FirebaseFunctionsException) {
+      switch (e.code) {
+        case 'unauthenticated': // App Check / auth rejected before the handler ran
+        case 'invalid-argument': // our input validation threw before OpenAI ran
+        case 'resource-exhausted': // Firebase throttled admission, before OpenAI ran
+          return true;
+        // NOTE: 'unavailable' is intentionally NOT refundable. A connection can
+        // drop AFTER OpenAI was already billed, so refunding it could cost us.
+        // (True offline is caught earlier by the internet check, before any
+        // charge, so genuine no-network users are never charged here.)
+        default:
+          return false; // 'unavailable', 'internal', 'deadline-exceeded', unknown
+      }
+    }
+    return false;
+  }
+
   // ── Error message helper (call this from catch blocks in screens) ───────────
   static String friendlyError(Object e) {
     if (e is FirebaseFunctionsException) {

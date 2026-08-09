@@ -14,6 +14,7 @@ import 'package:ai_medicine_tracker/screens/medicine_history_screen.dart';
 import 'package:ai_medicine_tracker/screens/paywall_screen.dart';
 import 'package:ai_medicine_tracker/screens/token_purchase_screen.dart';
 import 'package:ai_medicine_tracker/services/admob_service.dart';
+import 'package:ai_medicine_tracker/services/ai_service.dart';
 import 'package:ai_medicine_tracker/services/daily_limit_service.dart';
 import 'package:ai_medicine_tracker/services/pdf_export_service.dart';
 import 'package:ai_medicine_tracker/services/subscription_service.dart';
@@ -189,18 +190,35 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
       }
     } catch (e, st) {
       log('❌ Error: $e\n$st');
-      if (!isCacheHit && isPro) {
-        await DailyLimitService.instance.record(ApiFeature.search);
-      } else if (!isCacheHit && tokens > 0) {
-        await Prefs.deductToken();
-      } else if (!isCacheHit) {
-        await DailyLimitService.instance.record(ApiFeature.search);
+      // A genuine "not a real medicine" result means the AI ran and returned
+      // nothing usable — that call cost money, so the charge stands and we show
+      // "no medicine found". For real errors, only skip the charge when the AI
+      // never ran (offline / rejected before OpenAI); on ambiguous failures we
+      // keep the charge so we never pay OpenAI for free.
+      final isInvalidMedicine = e.toString().contains('INVALID_MEDICINE');
+      final noCost = !isInvalidMedicine && AIService.isNoCostFailure(e);
+      if (!isCacheHit && !noCost) {
+        if (isPro) {
+          await DailyLimitService.instance.record(ApiFeature.search);
+        } else if (tokens > 0) {
+          await Prefs.deductToken();
+        } else {
+          await DailyLimitService.instance.record(ApiFeature.search);
+        }
       }
       if (!mounted) return;
       setState(() {
-        _noMedicineFound = true;
+        _noMedicineFound = isInvalidMedicine;
         _currentMedicine = null;
       });
+      if (!isInvalidMedicine) {
+        Utils.showMessage(
+            context,
+            noCost
+                ? 'Something went wrong. Please check your connection and try again.'
+                : 'Something went wrong. Please try again.',
+            isError: true);
+      }
     } finally {
       _isLoading.value = false;
     }
