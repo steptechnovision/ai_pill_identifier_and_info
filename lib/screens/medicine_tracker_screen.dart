@@ -51,12 +51,14 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
   void initState() {
     super.initState();
     SubscriptionService.instance.proChangeNotifier.addListener(_onProChanged);
+    Prefs.tokensNotifier.addListener(_onProChanged);
     _initLogic();
   }
 
   @override
   void dispose() {
     SubscriptionService.instance.proChangeNotifier.removeListener(_onProChanged);
+    Prefs.tokensNotifier.removeListener(_onProChanged);
     _controller.dispose();
     super.dispose();
   }
@@ -279,7 +281,7 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
               ),
               12.verticalSpace,
               AppText(
-                'Your free welcome credits have been used up.\nBuy a credit pack or upgrade to Pro to keep searching.',
+                'You\'re out of credits.\nBuy a credit pack or upgrade to Pro to keep searching.',
                 textAlign: TextAlign.center,
                 color: Colors.white54,
                 fontSize: 13.sp,

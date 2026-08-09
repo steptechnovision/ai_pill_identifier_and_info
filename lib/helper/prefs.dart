@@ -1,7 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Prefs {
   static late SharedPreferences prefs;
+
+  /// Fires whenever the token/credit balance changes so any visible screen can
+  /// refresh instantly — e.g. the Camera tab updating after a purchase made
+  /// while the Search tab was on top (both are kept alive in an IndexedStack).
+  static final ValueNotifier<int> tokensNotifier = ValueNotifier<int>(0);
 
   // ── existing ──────────────────────────────────────────
   static String isDataPrefKey = 'isDataPrefKey';
@@ -71,6 +77,7 @@ class Prefs {
   // ─────────────────────────────────────────────────────
   static Future<void> initialize() async {
     prefs = await SharedPreferences.getInstance();
+    tokensNotifier.value = getTokens();
   }
 
   // ── generic helpers ───────────────────────────────────
@@ -102,18 +109,22 @@ class Prefs {
   // budget allows. See memory: monetization-and-growth.md.
   static int getTokens() => prefs.getInt(keyTokens) ?? 0;
 
-  static Future<void> setTokens(int value) async =>
-      prefs.setInt(keyTokens, value);
+  static Future<void> setTokens(int value) async {
+    await prefs.setInt(keyTokens, value);
+    tokensNotifier.value = value;
+  }
 
   static Future<void> addTokens(int amount) async {
     final current = getTokens();
     await prefs.setInt(keyTokens, current + amount);
+    tokensNotifier.value = current + amount;
   }
 
   static Future<bool> deductToken() async {
     final current = getTokens();
     if (current <= 0) return false;
     await prefs.setInt(keyTokens, current - 1);
+    tokensNotifier.value = current - 1;
     return true;
   }
 
@@ -121,6 +132,7 @@ class Prefs {
     final current = getTokens();
     if (current < amount) return false;
     await prefs.setInt(keyTokens, current - amount);
+    tokensNotifier.value = current - amount;
     return true;
   }
 

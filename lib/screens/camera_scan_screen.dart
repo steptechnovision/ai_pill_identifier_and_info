@@ -9,6 +9,7 @@ import 'package:ai_medicine_tracker/repository/medicine_repository.dart';
 import 'package:ai_medicine_tracker/screens/paywall_screen.dart';
 import 'package:ai_medicine_tracker/screens/token_purchase_screen.dart';
 import 'package:ai_medicine_tracker/services/ai_service.dart';
+import 'package:ai_medicine_tracker/services/subscription_service.dart';
 import 'package:ai_medicine_tracker/widgets/app_text.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
@@ -30,6 +31,27 @@ class _CameraScanScreenState extends State<CameraScanScreen> {
   String? _medicineName;
 
   final _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    // Refresh the credit chip instantly when the balance changes elsewhere
+    // (e.g. a purchase made on the Search tab while this tab is kept alive in
+    // the IndexedStack, or Pro monthly credits being granted).
+    Prefs.tokensNotifier.addListener(_onTokensChanged);
+    SubscriptionService.instance.proChangeNotifier.addListener(_onTokensChanged);
+  }
+
+  @override
+  void dispose() {
+    Prefs.tokensNotifier.removeListener(_onTokensChanged);
+    SubscriptionService.instance.proChangeNotifier.removeListener(_onTokensChanged);
+    super.dispose();
+  }
+
+  void _onTokensChanged() {
+    if (mounted) setState(() {});
+  }
 
   // ── Pick image ────────────────────────────────────────
 
@@ -70,6 +92,7 @@ class _CameraScanScreenState extends State<CameraScanScreen> {
 
   void _showCreditsDialog() {
     final current = Prefs.getTokens();
+    final isPro = SubscriptionService.instance.isPro;
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
@@ -111,7 +134,9 @@ class _CameraScanScreenState extends State<CameraScanScreen> {
               ),
               12.verticalSpace,
               AppText(
-                'Camera scan costs $_tokensPerScan credits per scan. You have $current credit${current == 1 ? '' : 's'}.\nUpgrade to Pro for monthly credits, or buy a pack to scan now.',
+                isPro
+                    ? 'Camera scan costs $_tokensPerScan credits per scan. You have $current credit${current == 1 ? '' : 's'}.\nYour Pro monthly credits refresh next month — or buy a pack to scan now.'
+                    : 'Camera scan costs $_tokensPerScan credits per scan. You have $current credit${current == 1 ? '' : 's'}.\nUpgrade to Pro for monthly credits, or buy a pack to scan now.',
                 textAlign: TextAlign.center,
                 color: Colors.white54,
                 fontSize: 13.sp,
@@ -119,27 +144,31 @@ class _CameraScanScreenState extends State<CameraScanScreen> {
                 maxLines: 5,
               ),
               24.verticalSpace,
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const PaywallScreen()),
-                    ).then((_) => setState(() {}));
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: UIConstants.accentGreen,
-                    foregroundColor: Colors.black,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              // Only offer "Upgrade to Pro" to non-Pro users. A Pro user who ran
+              // out of monthly scan credits should just be able to buy a pack.
+              if (!isPro) ...[
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const PaywallScreen()),
+                      ).then((_) => setState(() {}));
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: UIConstants.accentGreen,
+                      foregroundColor: Colors.black,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    icon: const Icon(Icons.stars_rounded, size: 18),
+                    label: AppText('Upgrade to Pro', fontSize: 14.sp, fontWeight: FontWeight.bold),
                   ),
-                  icon: const Icon(Icons.stars_rounded, size: 18),
-                  label: AppText('Upgrade to Pro', fontSize: 14.sp, fontWeight: FontWeight.bold),
                 ),
-              ),
-              10.verticalSpace,
+                10.verticalSpace,
+              ],
               SizedBox(
                 width: double.infinity,
                 height: 48,
