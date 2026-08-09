@@ -101,6 +101,14 @@ class SubscriptionService {
       final trialDays = productId == Constants.subAnnualId ? _annualTrialDays : 0;
       await Prefs.setProStartedAt(startedAt);
       await Prefs.setProTrialDays(trialDays);
+
+      // Migration guard: an existing subscriber who has ALREADY received a
+      // monthly grant is clearly past any trial. Mark converted so the trial
+      // limits/hold never wrongly apply to them after they update the app.
+      // (A brand-new trial user has never been granted, so this won't fire.)
+      if (!Prefs.shouldGrantProTokensThisMonth()) {
+        await Prefs.setTrialConverted();
+      }
     }
 
     final trialDays = Prefs.getProTrialDays();
