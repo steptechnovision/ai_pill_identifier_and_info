@@ -7,7 +7,6 @@ import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 
 import '../helper/constant.dart';
 import '../helper/prefs.dart';
-import 'ai_service.dart';
 
 class SubscriptionService {
   SubscriptionService._();
@@ -124,23 +123,17 @@ class SubscriptionService {
     final trialEndsAt = startedAt + trialDays * 24 * 60 * 60 * 1000;
 
     // Still inside the trial per the device clock → release ONLY the 1-scan
-    // allowance (a wrong clock here is harmless — worst case a 1-scan give).
+    // allowance.
     if (DateTime.now().millisecondsSinceEpoch < trialEndsAt) {
       await _grantTrialAllowance();
       return;
     }
 
-    // Device clock says the trial is over → confirm with SERVER time before
-    // releasing the valuable 30-token bundle, so a tampered clock can't unlock
-    // it early. If we can't confirm (offline) or the real time is still inside
-    // the trial, hold the 30 and give only the allowance.
-    final serverNow = await AIService.instance.getServerTime();
-    if (serverNow == null || serverNow < trialEndsAt) {
-      await _grantTrialAllowance();
-      return;
-    }
-
-    // Server confirms the trial genuinely ended → convert and release monthly.
+    // Trial is over per the device clock → mark converted and release the
+    // monthly bundle. We use the device clock (no server call) to keep traffic
+    // off the shared Firebase project. The small clock-tamper edge this leaves
+    // open is non-scalable (one trial per account) and bounded by the OpenAI
+    // hard spend cap.
     await Prefs.setTrialConverted();
     await _grantMonthlyIfDue();
   }

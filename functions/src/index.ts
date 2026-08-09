@@ -244,15 +244,6 @@ Rules:
   }
 );
 
-// ── Trusted server time (defeats device-clock tampering on the trial timer) ──
-// Trivial callable: no OpenAI, no Firestore — stays within the free tier.
-export const getServerTime = onCall(
-  { enforceAppCheck: true },
-  async () => {
-    return { now: Date.now() };
-  }
-);
-
 // ── 6. Grant Welcome Tokens (one-time per device, verified via Firestore) ────
 export const grantWelcomeTokens = onCall(
   { enforceAppCheck: true },
