@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:ai_medicine_tracker/helper/app_colors.dart';
+import 'package:ai_medicine_tracker/helper/constant.dart';
 import 'package:ai_medicine_tracker/helper/prefs.dart';
 import 'package:ai_medicine_tracker/helper/utils.dart';
 import 'package:ai_medicine_tracker/repository/medicine_repository.dart';
@@ -93,6 +94,7 @@ class _CameraScanScreenState extends State<CameraScanScreen> {
   void _showCreditsDialog() {
     final current = Prefs.getTokens();
     final isPro = SubscriptionService.instance.isPro;
+    final isInTrial = SubscriptionService.instance.isInTrial;
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
@@ -134,9 +136,11 @@ class _CameraScanScreenState extends State<CameraScanScreen> {
               ),
               12.verticalSpace,
               AppText(
-                isPro
-                    ? 'Camera scan costs $_tokensPerScan credits per scan. You have $current credit${current == 1 ? '' : 's'}.\nYour Pro monthly credits refresh next month — or buy a pack to scan now.'
-                    : 'Camera scan costs $_tokensPerScan credits per scan. You have $current credit${current == 1 ? '' : 's'}.\nUpgrade to Pro for monthly credits, or buy a pack to scan now.',
+                isInTrial
+                    ? 'Camera scan costs $_tokensPerScan credits per scan. You have $current credit${current == 1 ? '' : 's'} for your free trial.\nYour ${Constants.proMonthlyTokens} monthly scan credits unlock when your trial ends — or buy a pack to scan now.'
+                    : isPro
+                        ? 'Camera scan costs $_tokensPerScan credits per scan. You have $current credit${current == 1 ? '' : 's'}.\nYour Pro monthly credits refresh next month — or buy a pack to scan now.'
+                        : 'Camera scan costs $_tokensPerScan credits per scan. You have $current credit${current == 1 ? '' : 's'}.\nUpgrade to Pro for monthly credits, or buy a pack to scan now.',
                 textAlign: TextAlign.center,
                 color: Colors.white54,
                 fontSize: 13.sp,
@@ -327,6 +331,7 @@ class _CameraScanScreenState extends State<CameraScanScreen> {
             padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 24.h),
             child: Column(
               children: [
+                _buildTrialBanner(),
                 _buildImageArea(),
                 16.verticalSpace,
                 _buildActionButtons(),
@@ -411,6 +416,36 @@ class _CameraScanScreenState extends State<CameraScanScreen> {
                       size: 12),
                 ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTrialBanner() {
+    if (!SubscriptionService.instance.isInTrial) return const SizedBox.shrink();
+    return Container(
+      margin: EdgeInsets.only(bottom: 12.h),
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+      decoration: BoxDecoration(
+        color: UIConstants.accentGreen.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border:
+            Border.all(color: UIConstants.accentGreen.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.celebration_rounded,
+              color: UIConstants.accentGreen, size: 16),
+          10.horizontalSpace,
+          Expanded(
+            child: AppText(
+              'Free trial: 1 free scan now. Your ${Constants.proMonthlyTokens} monthly scan credits unlock when your trial ends.',
+              fontSize: 11.5.sp,
+              color: UIConstants.accentGreen.withValues(alpha: 0.9),
+              lineHeight: 1.4,
+              maxLines: 3,
             ),
           ),
         ],

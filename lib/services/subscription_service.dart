@@ -31,6 +31,17 @@ class SubscriptionService {
 
   bool get isPro => Prefs.isPro() || Prefs.isSimulatePro();
 
+  /// True while the current subscription is still inside its free-trial window
+  /// (computed from the stored start time + the plan's trial length). Used to
+  /// hold back the full monthly scan credits until the trial converts to paid.
+  bool get isInTrial {
+    final startedAt = Prefs.getProStartedAt();
+    final trialDays = Prefs.getProTrialDays();
+    if (startedAt == 0 || trialDays <= 0) return false;
+    final endsAt = startedAt + trialDays * 24 * 60 * 60 * 1000;
+    return DateTime.now().millisecondsSinceEpoch < endsAt;
+  }
+
   bool _initRestoreDone = false;
   bool _activeSubFoundDuringInit = false;
   bool _restoreErrorDuringInit = false;
@@ -59,8 +70,46 @@ class SubscriptionService {
     }
     _initRestoreDone = true;
 
-    // Grant monthly token bundle if Pro is still active
-    if (Prefs.isPro() && Prefs.shouldGrantProTokensThisMonth()) {
+    // Release credits based on trial state (trial allowance during the trial,
+    // full monthly bundle only after it ends). Idempotent — safe to call often.
+    if (Prefs.isPro()) {
+      await _grantProCredits();
+    }
+  }
+
+  /// Releases Pro credits with trial protection:
+  /// - During the free trial → ONE scan's worth of tokens, once.
+  /// - After the trial ends (or a plan with no trial) → the full monthly bundle,
+  ///   once per calendar month.
+  /// This guarantees a trial-then-cancel user can never drain the 30 monthly
+  /// scan credits — they only ever unlock after the trial converts to paid.
+  Future<void> _grantProCredits({PurchaseDetails? purchase}) async {
+    if (!Prefs.isPro()) return;
+
+    // Record when Pro started + the trial length for THIS plan (once).
+    if (Prefs.getProStartedAt() == 0) {
+      final tx =
+          purchase != null ? int.tryParse(purchase.transactionDate ?? '') : null;
+      final startedAt = (tx != null && tx > 0)
+          ? tx
+          : DateTime.now().millisecondsSinceEpoch;
+      // Trial applies to the annual plan only; monthly has no trial.
+      final productId = purchase?.productID ?? Prefs.getProProductId();
+      final trialDays = productId == Constants.subAnnualId ? _annualTrialDays : 0;
+      await Prefs.setProStartedAt(startedAt);
+      await Prefs.setProTrialDays(trialDays);
+    }
+
+    if (isInTrial) {
+      if (!Prefs.isTrialTokensGranted()) {
+        await Prefs.addTokens(Constants.trialTokens);
+        await Prefs.setTrialTokensGranted();
+        log('✅ Trial allowance granted: ${Constants.trialTokens}');
+      }
+      return;
+    }
+
+    if (Prefs.shouldGrantProTokensThisMonth()) {
       await Prefs.addTokens(Constants.proMonthlyTokens);
       await Prefs.markProTokensGranted();
       log('✅ Pro monthly tokens granted: ${Constants.proMonthlyTokens}');
@@ -141,13 +190,8 @@ class SubscriptionService {
           log('✅ Pro activated: ${p.productID}');
           proChangeNotifier.value++; // notify all UI listeners immediately
 
-          // Grant monthly token bundle once per calendar month
-          if (p.status == PurchaseStatus.purchased &&
-              Prefs.shouldGrantProTokensThisMonth()) {
-            await Prefs.addTokens(Constants.proMonthlyTokens);
-            await Prefs.markProTokensGranted();
-            log('✅ Pro purchase tokens granted: ${Constants.proMonthlyTokens}');
-          }
+          // Record start (once) and release credits based on trial state.
+          await _grantProCredits(purchase: p);
         }
       }
 

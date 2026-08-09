@@ -40,6 +40,11 @@ class Constants {
   // ── Pro monthly token bundle ──────────────────────────
   static const int proMonthlyTokens = 30; // granted once per calendar month
 
+  // Trial allowance: exactly ONE camera scan during the free trial. The full
+  // proMonthlyTokens are released only AFTER the trial ends (while still Pro),
+  // so a trial-then-cancel user can never drain the monthly scan credits.
+  static const int trialTokens = tokenCostScan; // 5 = one scan
+
   // ── Subscription product IDs ─────────────────────────
   // Create these in Google Play Console → Monetize → Subscriptions
   static const String subMonthlyId = 'ai_pill_pro_monthly';

@@ -30,6 +30,10 @@ class Prefs {
   static const String keyProTokenGrantMonth = 'pro_token_grant_month'; // 'YYYY-MM'
   static const String keyProProductId = 'pro_product_id';
   static const String keySimulatePro = 'simulate_pro_mode';
+  // Trial-aware credit release
+  static const String keyProStartedAt = 'pro_started_at'; // ms epoch of sub/trial start
+  static const String keyProTrialDays = 'pro_trial_days'; // trial length for this sub
+  static const String keyTrialTokensGranted = 'trial_tokens_granted';
 
   // ── welcome tokens (one-time server-side grant) ──────
   static const String keyWelcomeTokensChecked = 'welcome_tokens_checked';
@@ -221,6 +225,22 @@ class Prefs {
     await prefs.setBool(keyIsPro, value);
     if (productId != null) await prefs.setString(keyProProductId, productId);
   }
+
+  static String getProProductId() => prefs.getString(keyProProductId) ?? '';
+
+  // ── trial-aware credit release ────────────────────────
+  static int getProStartedAt() => prefs.getInt(keyProStartedAt) ?? 0;
+  static Future<void> setProStartedAt(int ms) async =>
+      prefs.setInt(keyProStartedAt, ms);
+
+  static int getProTrialDays() => prefs.getInt(keyProTrialDays) ?? 0;
+  static Future<void> setProTrialDays(int days) async =>
+      prefs.setInt(keyProTrialDays, days);
+
+  static bool isTrialTokensGranted() =>
+      prefs.getBool(keyTrialTokensGranted) ?? false;
+  static Future<void> setTrialTokensGranted() async =>
+      prefs.setBool(keyTrialTokensGranted, true);
 
   // ── family members ────────────────────────────────────
   static const String keyFamilyMembers = 'family_members_json';
