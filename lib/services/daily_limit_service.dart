@@ -14,6 +14,18 @@ class DailyLimitService {
 
   int getLimit(ApiFeature feature) {
     final isPro = SubscriptionService.instance.isPro;
+    // During the free trial, apply reduced daily limits (full Pro limits unlock
+    // once the trial converts to paid).
+    if (isPro && SubscriptionService.instance.isInTrial) {
+      switch (feature) {
+        case ApiFeature.search:
+          return Constants.trialDailySearchLimit;
+        case ApiFeature.interaction:
+          return Constants.trialDailyInteractionLimit;
+        case ApiFeature.cannabis:
+          return Constants.trialDailyCannabisLimit;
+      }
+    }
     switch (feature) {
       case ApiFeature.search:
         return isPro ? Constants.proDailySearchLimit : Constants.freeDailySearchLimit;

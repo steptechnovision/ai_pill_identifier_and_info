@@ -92,6 +92,25 @@ class AIService {
     return false;
   }
 
+  // ── Trusted server time (for the trial timer) ──────────────────────────────
+  /// Returns Google server time in ms since epoch, or null if unreachable.
+  /// Used to release the full Pro credits only after the trial genuinely ends,
+  /// so a tampered device clock can't unlock them early.
+  Future<int?> getServerTime() async {
+    try {
+      final result =
+          await _fn('getServerTime', timeout: const Duration(seconds: 15)).call();
+      final data = _toMap(result.data);
+      final now = data['now'];
+      if (now is int) return now;
+      if (now is num) return now.toInt();
+      return int.tryParse('$now');
+    } catch (e) {
+      log('⚠️ getServerTime failed: $e');
+      return null;
+    }
+  }
+
   // ── Error message helper (call this from catch blocks in screens) ───────────
   static String friendlyError(Object e) {
     if (e is FirebaseFunctionsException) {

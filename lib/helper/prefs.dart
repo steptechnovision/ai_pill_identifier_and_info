@@ -34,6 +34,7 @@ class Prefs {
   static const String keyProStartedAt = 'pro_started_at'; // ms epoch of sub/trial start
   static const String keyProTrialDays = 'pro_trial_days'; // trial length for this sub
   static const String keyTrialTokensGranted = 'trial_tokens_granted';
+  static const String keyTrialConverted = 'trial_converted'; // trial confirmed ended (server-verified)
 
   // ── welcome tokens (one-time server-side grant) ──────
   static const String keyWelcomeTokensChecked = 'welcome_tokens_checked';
@@ -241,6 +242,10 @@ class Prefs {
       prefs.getBool(keyTrialTokensGranted) ?? false;
   static Future<void> setTrialTokensGranted() async =>
       prefs.setBool(keyTrialTokensGranted, true);
+
+  static bool isTrialConverted() => prefs.getBool(keyTrialConverted) ?? false;
+  static Future<void> setTrialConverted() async =>
+      prefs.setBool(keyTrialConverted, true);
 
   // ── family members ────────────────────────────────────
   static const String keyFamilyMembers = 'family_members_json';

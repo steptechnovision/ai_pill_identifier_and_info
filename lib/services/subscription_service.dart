@@ -7,6 +7,7 @@ import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 
 import '../helper/constant.dart';
 import '../helper/prefs.dart';
+import 'ai_service.dart';
 
 class SubscriptionService {
   SubscriptionService._();
@@ -35,6 +36,7 @@ class SubscriptionService {
   /// (computed from the stored start time + the plan's trial length). Used to
   /// hold back the full monthly scan credits until the trial converts to paid.
   bool get isInTrial {
+    if (Prefs.isTrialConverted()) return false;
     final startedAt = Prefs.getProStartedAt();
     final trialDays = Prefs.getProTrialDays();
     if (startedAt == 0 || trialDays <= 0) return false;
@@ -87,6 +89,7 @@ class SubscriptionService {
     if (!Prefs.isPro()) return;
 
     // Record when Pro started + the trial length for THIS plan (once).
+    // transactionDate is Google-provided, so the trial START can't be faked.
     if (Prefs.getProStartedAt() == 0) {
       final tx =
           purchase != null ? int.tryParse(purchase.transactionDate ?? '') : null;
@@ -100,15 +103,49 @@ class SubscriptionService {
       await Prefs.setProTrialDays(trialDays);
     }
 
-    if (isInTrial) {
-      if (!Prefs.isTrialTokensGranted()) {
-        await Prefs.addTokens(Constants.trialTokens);
-        await Prefs.setTrialTokensGranted();
-        log('✅ Trial allowance granted: ${Constants.trialTokens}');
-      }
+    final trialDays = Prefs.getProTrialDays();
+    final startedAt = Prefs.getProStartedAt();
+
+    // Fast path: no trial, or trial already confirmed ended → monthly bundle,
+    // no server call needed.
+    if (Prefs.isTrialConverted() || trialDays <= 0 || startedAt == 0) {
+      await _grantMonthlyIfDue();
       return;
     }
 
+    final trialEndsAt = startedAt + trialDays * 24 * 60 * 60 * 1000;
+
+    // Still inside the trial per the device clock → release ONLY the 1-scan
+    // allowance (a wrong clock here is harmless — worst case a 1-scan give).
+    if (DateTime.now().millisecondsSinceEpoch < trialEndsAt) {
+      await _grantTrialAllowance();
+      return;
+    }
+
+    // Device clock says the trial is over → confirm with SERVER time before
+    // releasing the valuable 30-token bundle, so a tampered clock can't unlock
+    // it early. If we can't confirm (offline) or the real time is still inside
+    // the trial, hold the 30 and give only the allowance.
+    final serverNow = await AIService.instance.getServerTime();
+    if (serverNow == null || serverNow < trialEndsAt) {
+      await _grantTrialAllowance();
+      return;
+    }
+
+    // Server confirms the trial genuinely ended → convert and release monthly.
+    await Prefs.setTrialConverted();
+    await _grantMonthlyIfDue();
+  }
+
+  Future<void> _grantTrialAllowance() async {
+    if (!Prefs.isTrialTokensGranted()) {
+      await Prefs.addTokens(Constants.trialTokens);
+      await Prefs.setTrialTokensGranted();
+      log('✅ Trial allowance granted: ${Constants.trialTokens}');
+    }
+  }
+
+  Future<void> _grantMonthlyIfDue() async {
     if (Prefs.shouldGrantProTokensThisMonth()) {
       await Prefs.addTokens(Constants.proMonthlyTokens);
       await Prefs.markProTokensGranted();

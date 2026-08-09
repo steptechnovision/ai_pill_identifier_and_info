@@ -339,6 +339,7 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
   void _showProLimitReachedDialog(ApiFeature feature) {
     final limit = DailyLimitService.instance.getLimit(feature);
     final label = feature == ApiFeature.search ? 'searches' : 'interaction checks';
+    final inTrial = SubscriptionService.instance.isInTrial;
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
@@ -373,7 +374,9 @@ class _MedicineTrackerScreenState extends State<MedicineTrackerScreen> {
               ),
               12.verticalSpace,
               AppText(
-                'You\'ve used all $limit $label for today.\nThis resets at midnight.',
+                inTrial
+                    ? 'You\'ve used all $limit $label for today (trial limit).\nYour full Pro limit unlocks when your trial ends. Resets at midnight.'
+                    : 'You\'ve used all $limit $label for today.\nThis resets at midnight.',
                 textAlign: TextAlign.center,
                 color: Colors.white54,
                 fontSize: 13.sp,

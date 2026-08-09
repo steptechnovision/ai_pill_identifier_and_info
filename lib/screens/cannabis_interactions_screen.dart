@@ -223,6 +223,7 @@ class _CannabisInteractionsScreenState
 
   void _showProLimitDialog() {
     final limit = DailyLimitService.instance.getLimit(ApiFeature.cannabis);
+    final inTrial = SubscriptionService.instance.isInTrial;
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
@@ -256,7 +257,9 @@ class _CannabisInteractionsScreenState
               ),
               12.verticalSpace,
               AppText(
-                'You\'ve used all $limit cannabis checks for today.\nResets at midnight.',
+                inTrial
+                    ? 'You\'ve used all $limit cannabis checks for today (trial limit).\nYour full Pro limit unlocks when your trial ends. Resets at midnight.'
+                    : 'You\'ve used all $limit cannabis checks for today.\nResets at midnight.',
                 fontSize: 13.sp,
                 color: Colors.white54,
                 textAlign: TextAlign.center,

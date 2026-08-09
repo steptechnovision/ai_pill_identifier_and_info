@@ -27,6 +27,11 @@ class Constants {
   static const int proDailySearchLimit = 12;
   static const int proDailyInteractionLimit = 8;
   static const int proDailyCannabisLimit = 5;
+  // Reduced limits DURING the free trial (lower cost while evaluating; the full
+  // Pro limits above unlock once the trial converts to paid).
+  static const int trialDailySearchLimit = 5;
+  static const int trialDailyInteractionLimit = 3;
+  static const int trialDailyCannabisLimit = 2;
   static const int freeFamilyMembersLimit = 2;
   static const int proFamilyMembersLimit = 20;
 
